@@ -1,33 +1,78 @@
 import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+import scipy
 
-imR = cv.imread('/Users/enricobarone/Desktop/Computer-Vision/Progetto Esame/Assignment_1/DATASET/val/c1/zh3_01_01_R.png')
-imT = cv.imread('/Users/enricobarone/Desktop/Computer-Vision/Progetto Esame/Assignment_1/DATASET/val/c1/zh3_01_01_T.png')
+PATH = '/Users/enricobarone/Desktop/Computer-Vision/Progetto Esame/Assignment_1/DATASET/val'
+METODO = ['Powell', 'Nelder-Mead', 'BFGS']
+BINS = [64,128,256]
 
-# Convert images to grayscale
-imR_gray = cv.cvtColor(imR, cv.COLOR_BGR2GRAY)
-imT_gray = cv.cvtColor(imT, cv.COLOR_BGR2GRAY)
+def val_dataset(PATH):
+    for subdir in sorted(os.listdir(PATH)):
+        subdir_path = os.path.join(PATH, subdir)
+        if os.path.isdir(subdir_path):
+            files = os.listdir(subdir_path)
+            
+            # Identify R and T files
+            file_R = next((f for f in files if '_R.png' in f), None)
+            file_T = next((f for f in files if '_T.png' in f), None)
+            
+            if file_R and file_T:
+                imR = cv.imread(os.path.join(subdir_path, file_R), flags=cv.IMREAD_GRAYSCALE)
+                imT = cv.imread(os.path.join(subdir_path, file_T), flags=cv.IMREAD_GRAYSCALE)
 
-# Flatten the images to 1D arrays
-imR_flat = imR_gray.flatten()
-imT_flat = imT_gray.flatten()
+                # Yield the 2D images directly
+                yield (imR, imT)
+
+def massimizza_mutua_informazione(imR_img, imT_img, bins, metodo):
+
+    def entropia(img_flat):
+        hist_s, _ = np.histogram(img_flat, bins, range=(0, 255))
+        p = hist_s / hist_s.sum()  # probabilità reali, somma = 1
+        return -np.sum(p[p > 0] * np.log2(p[p > 0]))
+
+    def entropia_congiunta(img1_flat, img2_flat):
+        hist, _, _ = np.histogram2d(img1_flat, img2_flat, bins, range=[[0,255],[0,255]])
+        p = hist / hist.sum()      # stessa cosa in 2D
+        return -np.sum(p[p > 0] * np.log2(p[p > 0]))
+
+    def mutua_informazione(img1_flat, img2_flat):
+        return entropia(img1_flat) + entropia(img2_flat) - entropia_congiunta(img1_flat, img2_flat)
 
 
-def entropia(img_flat, bins=128):
-    hist_s, _ = np.histogram(img_flat, bins, density=True)
-    return -np.sum(hist_s[hist_s > 0] * np.log2(hist_s[hist_s > 0]))
+    rows, cols = imT_img.shape
+    center = (cols // 2, rows // 2)
+
+    def objective(params):
+        tx, ty, angle = params
+
+        M = cv.getRotationMatrix2D(center, angle, 1.0)
+        M[0, 2] += tx
+        M[1, 2] += ty
+        
+
+        imT_warped = cv.warpAffine(imT_img, M, (cols, rows), flags=cv.INTER_LINEAR, borderMode=cv.BORDER_REFLECT_101)
+        
+        # We minimize negative mutual information
+        return -mutua_informazione(imR_img.flatten(), imT_warped.flatten())
 
 
-def entropia_congiunta(img1_flat, img2_flat, bins=128):
-    hist, _, _ = np.histogram2d(img1_flat, img2_flat, bins=bins, density=True)
-    return -np.sum(hist[hist > 0] * np.log2(hist[hist > 0]))
+    initial_guess = [0.0, 0.0, 0.0]
+    res = scipy.optimize.minimize(objective, initial_guess, method=metodo)
+    return res.x
 
+for b in BINS:
+    for m in METODO:
+        results = []
+        for imR, imT in val_dataset(PATH):
+            params = massimizza_mutua_informazione(imR, imT, b, m)
+            results.append(params)
+        
+        print(f"\nRisultati per Bins={b}, Metodo={m}:")
+        print(np.array(results))
 
-mutua_informazione = entropia(imR_flat) + entropia(imT_flat) - entropia_congiunta(imR_flat, imT_flat)
-print(mutua_informazione)
-
-# Plot the histogram
-hist_2d, _, _ = np.histogram2d(imR_flat, imT_flat, bins=128)
-plt.imshow(hist_2d, origin='lower', cmap='hot')
-plt.show()
+# # Plot the histogram
+# hist_2d, _, _ = np.histogram2d(imR_flat, imT_flat, BINS=128)
+# plt.imshow(hist_2d, origin='lower', cmap='hot')
+# plt.show()
