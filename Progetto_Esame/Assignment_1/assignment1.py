@@ -3,8 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import scipy
+import tabulate as tb
 
-PATH = '/Users/enricobarone/Desktop/Computer-Vision/Progetto Esame/Assignment_1/DATASET/val'
+PATH = r"Progetto_Esame\Assignment_1\DATASET\val"
 METODO = ['Powell', 'Nelder-Mead', 'BFGS']
 BINS = [64,128,256]
 
@@ -52,14 +53,31 @@ def massimizza_mutua_informazione(imR_img, imT_img, bins, metodo):
         M[1, 2] += ty
         
 
-        imT_warped = cv.warpAffine(imT_img, M, (cols, rows), flags=cv.INTER_LINEAR, borderMode=cv.BORDER_REFLECT_101)
+        imT_warped = cv.warpAffine(imT_img, M, (cols, rows), flags=cv.INTER_LINEAR)
         
         # We minimize negative mutual information
         return -mutua_informazione(imR_img.flatten(), imT_warped.flatten())
 
 
-    initial_guess = [0.0, 0.0, 0.0]
-    res = scipy.optimize.minimize(objective, initial_guess, method=metodo)
+    initial_guess = np.array([0.0, 0.0, 0.0])
+    
+    opts = {}
+    if metodo == 'BFGS':
+        # BFGS usa differenze finite per stimare il gradiente. Il default (~1e-8) è 
+        # troppo piccolo per alterare i bin dell'istogramma. Forziamo uno step di 1.0.
+        opts = {'eps': 1.0} 
+    elif metodo == 'Nelder-Mead':
+        # Nelder-Mead con guess iniziali a 0 crea un simplesso esplorativo minuscolo (0.00025).
+        # Costruiamo un simplesso iniziale manuale con scostamenti di 2.0 pixel/gradi.
+        step = 2.0
+        opts = {'initial_simplex': np.array([
+            [0.0, 0.0, 0.0],
+            [step, 0.0, 0.0],
+            [0.0, step, 0.0],
+            [0.0, 0.0, step]
+        ])}
+
+    res = scipy.optimize.minimize(objective, initial_guess, method=metodo, options=opts)
     return res.x
 
 for b in BINS:
@@ -67,10 +85,11 @@ for b in BINS:
         results = []
         for imR, imT in val_dataset(PATH):
             params = massimizza_mutua_informazione(imR, imT, b, m)
+            params[2] = (params[2] * np.pi) / 180
             results.append(params)
         
         print(f"\nRisultati per Bins={b}, Metodo={m}:")
-        print(np.array(results))
+        print( tb.tabulate( np.array(results) , tablefmt='rounded_grid' ) )
 
 # # Plot the histogram
 # hist_2d, _, _ = np.histogram2d(imR_flat, imT_flat, BINS=128)
