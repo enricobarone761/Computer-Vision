@@ -32,6 +32,8 @@ def val_dataset(PATH):
                 yield (imR, imT)
 
 def massimizza_mutua_informazione(imR_img, imT_img, bins, metodo):
+    # Applichiamo il Gaussian Blur per lisciare la superficie della MI
+    imR_img = cv.GaussianBlur(imR_img, (7, 7), 0)
 
     def entropia(img_flat):
         hist_s, _ = np.histogram(img_flat, bins, range=(0, 255))
@@ -68,8 +70,6 @@ def massimizza_mutua_informazione(imR_img, imT_img, bins, metodo):
     
     opts = {}
     if metodo == 'BFGS':
-        # BFGS usa differenze finite per stimare il gradiente. Il default (~1e-8) è 
-        # troppo piccolo per alterare i bin dell'istogramma. Forziamo uno step di 1.0.
         opts = {'eps': [1.0, 1.0, 0.001]}
 
     res = scipy.optimize.minimize(objective, initial_guess, method=metodo, options=opts)

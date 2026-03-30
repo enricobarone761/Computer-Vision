@@ -56,20 +56,19 @@ def mutual_information(img_ref, img_mov, bins=64):
 # ──────────────────────────────────────────────
 # 2. Trasformazione geometrica (roto-traslazione)
 # ──────────────────────────────────────────────
-def build_affine_matrix(params):
-    """Costruisce la matrice affine 2×3 da [theta, tx, ty]."""
-    theta, tx, ty = params
-    cos_t, sin_t = np.cos(theta), np.sin(theta)
-    return np.array([
-        [cos_t, -sin_t, tx],
-        [sin_t,  cos_t, ty]
-    ], dtype=np.float64)
-
-
 def apply_transform(img, params, out_shape):
-    """Applica la roto-traslazione all'immagine con interpolazione bilineare."""
-    M = build_affine_matrix(params)
+    """Applica la roto-traslazione all'immagine con rotazione attorno al centro."""
+    theta_rad, tx, ty = params
     h, w = out_shape[:2]
+    center = (w / 2, h / 2)
+    
+    # cv2.getRotationMatrix2D vuole l'angolo in gradi
+    theta_deg = np.degrees(theta_rad)
+    
+    M = cv2.getRotationMatrix2D(center, theta_deg, 1.0)
+    M[0, 2] += tx
+    M[1, 2] += ty
+    
     return cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR)
 
 
@@ -120,11 +119,11 @@ def load_image_pair(subset, pair, filename):
 # ──────────────────────────────────────────────
 # 5. Registrazione di una singola coppia
 # ──────────────────────────────────────────────
-def register_pair(img_ref, img_mov, bins=64, method="Powell", blur_ksize=21):
+def register_pair(img_ref, img_mov, bins=64, method="Powell", blur_ksize=7):
     """Stima la roto-traslazione ottimale massimizzando la MI."""
     if blur_ksize > 0:
         img_ref = cv2.GaussianBlur(img_ref, (blur_ksize, blur_ksize), 0)
-        #img_mov = cv2.GaussianBlur(img_mov, (blur_ksize, blur_ksize), 0)
+        img_mov = cv2.GaussianBlur(img_mov, (blur_ksize, blur_ksize), 0)
 
     x0 = np.array([0.0, 0.0, 0.0])  # [theta, tx, ty] — identità
 
@@ -309,6 +308,21 @@ def main():
     mean_tx, mean_ty, mean_angle, test_preds = evaluate(
         gt["test"], best_bins, best_method, "TEST"
     )
+    
+    # ── Riepilogo errori per coppia sul Test Set ──
+    print("\n" + "=" * 70)
+    print("DETTAGLIO ERRORI PER COPPIA (Test Set)")
+    print("=" * 70)
+    print(f"{'Paio':<8} {'Δtx':<10} {'Δty':<10} {'Dist. px':<12} {'Δθ (deg)':<10}")
+    print("-" * 60)
+    for rec, pred in zip(gt["test"], test_preds):
+        err_tx = abs(pred["tx"] - rec["tx"])
+        err_ty = abs(pred["ty"] - rec["ty"])
+        err_dist = np.sqrt(err_tx**2 + err_ty**2)
+        err_angle_deg = np.degrees(abs(pred["theta"] - rec["angle_rad"]))
+        print(f"{rec['pair']:<8} {err_tx:<10.4f} {err_ty:<10.4f} {err_dist:<12.4f} {err_angle_deg:<10.4f}")
+    print("=" * 70)
+
     # ── Salvataggio CSV predizioni test (config migliore) ──
     test_pair_labels = [r["pair"] for r in gt["test"]]
     test_csv = os.path.join(run_dir, "predictions_test.csv")
