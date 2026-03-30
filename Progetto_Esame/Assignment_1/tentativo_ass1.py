@@ -124,7 +124,7 @@ def register_pair(img_ref, img_mov, bins=64, method="Powell", blur_ksize=21):
     """Stima la roto-traslazione ottimale massimizzando la MI."""
     if blur_ksize > 0:
         img_ref = cv2.GaussianBlur(img_ref, (blur_ksize, blur_ksize), 0)
-        img_mov = cv2.GaussianBlur(img_mov, (blur_ksize, blur_ksize), 0)
+        #img_mov = cv2.GaussianBlur(img_mov, (blur_ksize, blur_ksize), 0)
 
     x0 = np.array([0.0, 0.0, 0.0])  # [theta, tx, ty] — identità
 
