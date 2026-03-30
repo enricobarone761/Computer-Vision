@@ -30,7 +30,7 @@ def mutual_information(img_ref, img_mov, bins=64):
     # Istogramma congiunto 2D
     hist_2d, _, _ = np.histogram2d(
         img_ref.ravel(), img_mov.ravel(),
-        bins=bins, range=[[0, 256], [0, 256]]
+        bins=bins, range=[[0, 255], [0, 255]]
     )
     # Distribuzione di probabilità congiunta (evita log(0))
     p_joint = hist_2d / hist_2d.sum()
@@ -121,7 +121,7 @@ def load_image_pair(subset, pair, filename):
 # ──────────────────────────────────────────────
 # 5. Registrazione di una singola coppia
 # ──────────────────────────────────────────────
-def register_pair(img_ref, img_mov, bins=64, method="Powell", blur_ksize=11):
+def register_pair(img_ref, img_mov, bins=64, method="Powell", blur_ksize=21):
     """Stima la roto-traslazione ottimale massimizzando la MI."""
     if blur_ksize > 0:
         img_ref = cv2.GaussianBlur(img_ref, (blur_ksize, blur_ksize), 0)
@@ -135,9 +135,9 @@ def register_pair(img_ref, img_mov, bins=64, method="Powell", blur_ksize=11):
     # subito al punto di partenza. Usiamo eps=1.0 (1 pixel / ~0.017 rad) per
     # garantire che le perturbazioni siano abbastanza grandi da cambiare la MI.
     if method == "BFGS":
-        opts = {"maxiter": 1000, "disp": False, "eps": [0.01, 1.0, 1.0], "gtol": 1e-4}
+        opts = {"disp": False, "eps": [0.001, 1.0, 1.0], "gtol": 1e-4}
     else:
-        opts = {"maxiter": 1000, "disp": False}
+        opts = {"disp": False}
 
     result = minimize(
         neg_mi, x0,
@@ -177,6 +177,43 @@ def evaluate(records, bins, method, subset_name):
     mean_ty = np.mean(errors_ty)
     mean_angle = np.mean(errors_angle)
     return mean_tx, mean_ty, mean_angle, predictions
+
+
+# ──────────────────────────────────────────────
+# 8. Visualizzazione immagini allineate e differenza (consegna punto 3)
+# ──────────────────────────────────────────────
+def show_aligned_and_diff(records, predictions, best_config):
+    """Per ogni coppia di test mostra l'immagine di riferimento, allineata e differenza."""
+    print("\n" + "=" * 70)
+    print("VISUALIZZAZIONE RISULTATI (Test set)")
+    print("Premi un tasto su una finestra per passare alla coppia successiva.")
+    print("=" * 70)
+
+    for rec, pred in zip(records, predictions):
+        img_ref, img_mov = load_image_pair(rec["dataset"], rec["pair"], rec["filename"])
+        params = [pred["theta"], pred["tx"], pred["ty"]]
+        aligned = apply_transform(img_mov, params, img_ref.shape)
+
+        # Differenza assoluta e colormap
+        diff_f = np.abs(img_ref.astype(np.float32) - aligned.astype(np.float32))
+        diff_u8 = np.clip(diff_f, 0, 255).astype(np.uint8)
+        diff_color = cv2.applyColorMap(diff_u8, cv2.COLORMAP_JET)
+
+        # Preparazione stack orizzontale (Ref | Aligned | Diff)
+        # Convertiamo i grigi in BGR per lo stack con la mappa colori
+        ref_bgr = cv2.cvtColor(img_ref, cv2.COLOR_GRAY2BGR)
+        aligned_bgr = cv2.cvtColor(aligned, cv2.COLOR_GRAY2BGR)
+        
+        vis = np.hstack((ref_bgr, aligned_bgr, diff_color))
+        
+        pair = rec["pair"]
+        window_name = f"Coppia {pair} (Ref | Aligned | Diff)"
+        cv2.imshow(window_name, vis)
+        print(f"  Visualizzando {pair}... (chiudi la finestra o premi un tasto)")
+        cv2.waitKey(0)
+        cv2.destroyWindow(window_name)
+
+    print("\n  Visualizzazione completata.")
 
 
 def save_prediction_csv(all_preds, pair_labels, csv_path):
@@ -288,6 +325,9 @@ def main():
     print(f"  Errore medio rotazione     : {mean_angle:.6f} rad")
     print(f"  Errore totale combinato    : {mean_tx + mean_ty + mean_angle:.4f}")
     print("=" * 70)
+
+    # ── Punto 3 della consegna: immagini allineate e differenza per ogni coppia di test ──
+    show_aligned_and_diff(gt["test"], test_preds, best_config)
 
 
 if __name__ == "__main__":

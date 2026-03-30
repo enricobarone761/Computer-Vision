@@ -42,3 +42,15 @@ confrontando le configurazioni con 64, 128 e 256 bin e scegliendo quella che pro
 selezionare il metodo di ottimizzazione (uno tra Powell, Nelder–Mead, BFGS). Individuata la configurazione migliore, questa dovrà
 essere utilizzata senza ulteriori modifiche per calcolare i valori di errore sull’insieme di test.
 Siete liberi di utilizzare le tecniche di pre-processing delle immagini che ritenete più opportune.
+
+È necessario consegnare, in un unico zip, da inviare al mio indirizzo community:
+1. Il codice completo per poter ripetere tutti gli esperimenti condotti. Non saranno valutate parti di codice commentate. Siate
+ordinati e, se lo reputate opportuno, usate più file per il vostro codice.
+2. Numero 10 (massimo) slides riportanti: descrizione del problema, difficoltà riscontrate, metodo implementato, risultati
+qualitativi (immagini) e quantitativi (tabelle) degli esperimenti condotti al variare del numero di bin e del metodo di
+ottimizzazione (sul validation set) e prestazioni della configurazione migliore sul test set. Per un paio di esperimenti, riportare
+l’andamento della MI al variare delle iterazioni.
+3. Per ogni coppia di test, l’immagine allineata e l’immagine differenza (reference – allineata).
+Dagli esperimenti sul validation set si deve capire qual è:
+- Il numero di bin dell’istogramma che produce la configurazione migliore in media (obbligatorio)
+- Il miglior algoritmo di ottimizzazione (opzionale)
