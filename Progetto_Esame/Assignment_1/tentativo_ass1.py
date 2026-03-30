@@ -5,7 +5,7 @@ Stima di una roto-traslazione tra coppie di immagini multimodali
 massimizzando la Mutua Informazione (MI).
 """
 
-import os, csv, warnings
+import os, warnings
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -70,8 +70,7 @@ def apply_transform(img, params, out_shape):
     """Applica la roto-traslazione all'immagine con interpolazione bilineare."""
     M = build_affine_matrix(params)
     h, w = out_shape[:2]
-    return cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR,
-                          borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+    return cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR)
 
 
 # ──────────────────────────────────────────────
@@ -87,21 +86,21 @@ def neg_mi(params, img_ref, img_mov, bins):
 # 4. Caricamento dataset e ground truth
 # ──────────────────────────────────────────────
 def load_gt(gt_path):
-    """Carica il ground truth dal CSV."""
-    records = {"val": [], "test": []}
-    with open(gt_path, "r") as f:
-        reader = csv.DictReader(f, delimiter=";")
-        for row in reader:
-            entry = {
-                "filename": row["Filename"],
-                "pair": row["Pair"],
-                "dataset": row["Dataset"],
-                "angle_rad": float(row["AngleRad"]),
-                "tx": float(row["Tx"]),
-                "ty": float(row["Ty"]),
-            }
-            records[row["Dataset"]].append(entry)
-    return records
+    """Carica il ground truth dal CSV usando pandas."""
+    df = pd.read_csv(gt_path, sep=";")
+    # Rinominiamo le colonne per uniformità con il resto del codice
+    df = df.rename(columns={
+        "Filename": "filename",
+        "Pair": "pair",
+        "Dataset": "dataset",
+        "AngleRad": "angle_rad",
+        "Tx": "tx",
+        "Ty": "ty"
+    })
+    return {
+        "val": df[df["dataset"] == "val"].to_dict("records"),
+        "test": df[df["dataset"] == "test"].to_dict("records")
+    }
 
 
 def load_image_pair(subset, pair, filename):
