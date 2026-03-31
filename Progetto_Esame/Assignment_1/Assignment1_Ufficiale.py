@@ -14,6 +14,7 @@ import scipy.optimize
 
 PATH_VAL = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "val")
 PATH_TEST = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "test")
+GT_PATH = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "GT.csv")
 METODO = ['Powell', 'Nelder-Mead', 'BFGS']
 BINS = [64,128,256]
 
@@ -69,14 +70,17 @@ def mutua_informazione(img_ref, img_mov, bins):
 def funzione_obiettivo(params, imR_img, imT_img, bins):
     tx, ty, angle = params
 
-    # cv2.getRotationMatrix2D vuole l'angolo in gradi
+    # cv.getRotationMatrix2D vuole l'angolo in gradi
     theta_deg = np.degrees(angle)
 
-    T = cv.getRotationMatrix2D((150,150), theta_deg, 1.0)
+    h,w = imT_img.shape
+    center = (w//2, h//2)    
+
+    T = cv.getRotationMatrix2D(center, theta_deg, 1.0)
     T[0, 2] += tx
     T[1, 2] += ty
 
-    imT_warped = cv.warpAffine(imT_img, T, (300, 300), flags=cv.INTER_LINEAR)
+    imT_warped = cv.warpAffine(imT_img, T, (w, h), flags=cv.INTER_LINEAR)
 
     # We minimize negative mutual information
     return -mutua_informazione(imR_img, imT_warped, bins)
@@ -98,19 +102,48 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
     return res.x
 
 def main():
-    dataset_val = list(load_dataset(PATH_VAL))
+    immagini = list(load_dataset(PATH_VAL))
+    gt = pd.read_csv(GT_PATH, sep=';')
+    gt_val = gt[gt['Dataset'] == 'val'].reset_index(drop=True)
     
+    riepilogo = []
+
     for b in BINS:
         for m in METODO:
-            results = []
+            # 1. Trovo parametri per ogni immagine senza calcolare l'errore qua
+            risultati = []
+            for imR, imT in immagini:
+                tx, ty, angle = massimizza_mutua_informazione(imR, imT, b, m)
+                risultati.append([tx, ty, angle])
+
+            # 2. Creo il DataFrame con i parametri trovati
+            df = pd.DataFrame(risultati, columns=['Tx', 'Ty', 'Angolo'])
+
+            # 3. Poi faccio i calcoli dell'MSE per tutte le righe assieme
+            df['MSE_trasl'] = ((df['Tx'] - gt_val['Tx'])**2 + (df['Ty'] - gt_val['Ty'])**2) / 2
+            df['MSE_rot'] = (df['Angolo'] - gt_val['AngleRad'])**2
+            df['MSE_tot'] = df['MSE_trasl'] + df['MSE_rot']
+
+            # 4. Calcolo media (il vero MSE sul dataset) e varianza dell'errore
+            media_trasl = df['MSE_trasl'].mean()
+            media_rot = df['MSE_rot'].mean()
+            media_tot = df['MSE_tot'].mean()
             
-            for imR, imT in dataset_val:
-                params = massimizza_mutua_informazione(imR, imT, b, m)
-                results.append(params)
+            # Varianze separate per capire dove il metodo è più instabile
+            var_trasl = df['MSE_trasl'].var()
+            var_rot = df['MSE_rot'].var()
             
-            df = pd.DataFrame(results, columns=['Tx', 'Ty', 'Angolo(rad)'])
-            print(f"\n--- CONFIGURAZIONE: {m} | BINS: {b} ---")
-            print(df)
+            # Salvo per il riepilogo
+            riepilogo.append([m, b, media_trasl, var_trasl, media_rot, var_rot, media_tot])
+            
+            print(f"\nRisultati per metodo {m} e {b} bins:")
+            print(df.round(4))
+
+    # Stampo la classifica finale
+    colonne = ['Metodo', 'Bins', 'Media_Trasl', 'Var_Trasl', 'Media_Rot', 'Var_Rot', 'Media_Totale']
+    df_finale = pd.DataFrame(riepilogo, columns=colonne)
+    print("\nCLASSIFICA FINALE DEI METODI")
+    print(df_finale.sort_values(by='Media_Totale').round(6))
 
 if __name__ == "__main__":
     main()
