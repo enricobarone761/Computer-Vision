@@ -2,7 +2,6 @@ import cv2 as cv
 import numpy as np
 import pandas as pd
 import os
-import scipy.optimize
 import Assignment1_Ufficiale as A1
 
 # Percorsi
@@ -59,10 +58,17 @@ def main():
     df['MSE_rot'] = (df['Angolo'] - gt['AngleRad'])**2
     df['MSE_tot'] = df['MSE_trasl'] + df['MSE_rot']
 
+    media_trasl = df['MSE_trasl'].mean()
+    media_rot = df['MSE_rot'].mean()
+    media_tot = df['MSE_tot'].mean()
+    
+    var_trasl = df['MSE_trasl'].var()
+    var_rot = df['MSE_rot'].var()
+
     print(df)
-    print("Media traslazione:", df['MSE_trasl'].mean())
-    print("Media rotazione:", df['MSE_rot'].mean())
-    print("Media totale:", df['MSE_tot'].mean())
+    print("Media traslazione:", media_trasl, "| Varianza:", var_trasl)
+    print("Media rotazione:", media_rot, "| Varianza:", var_rot)
+    print("Media totale:", media_tot)
 
 if __name__ == "__main__":
     main()
