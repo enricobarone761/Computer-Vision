@@ -68,17 +68,16 @@ def mutua_informazione(img_ref, img_mov, bins):
     return H_ref + H_mov - H_joint
 
 def funzione_obiettivo(params, imR_img, imT_img, bins):
-    tx, ty, angle = params
+    tx, ty, theta = params
 
-    # cv.getRotationMatrix2D vuole l'angolo in gradi
-    theta_deg = np.degrees(angle)
+    h, w = imT_img.shape
+    #cx, cy = w // 2, h // 2
 
-    h,w = imT_img.shape
-    center = (w//2, h//2)    
-
-    T = cv.getRotationMatrix2D(center, theta_deg, 1.0)
-    T[0, 2] += tx
-    T[1, 2] += ty
+    # Matrice di rotazione e traslazione calcolata manualmente
+    T = np.array([
+        [np.cos(theta) , -np.sin(theta), tx],
+        [np.sin(theta), np.cos(theta), ty]
+    ], dtype=np.float32)
 
     imT_warped = cv.warpAffine(imT_img, T, (w, h), flags=cv.INTER_LINEAR)
 
@@ -110,40 +109,43 @@ def main():
 
     for b in BINS:
         for m in METODO:
-            # 1. Trovo parametri per ogni immagine senza calcolare l'errore qua
+            # 1. Trovo parametri per ogni immagine
             risultati = []
             for imR, imT in immagini:
                 tx, ty, angle = massimizza_mutua_informazione(imR, imT, b, m)
                 risultati.append([tx, ty, angle])
 
             # 2. Creo il DataFrame con i parametri trovati
-            df = pd.DataFrame(risultati, columns=['Tx', 'Ty', 'Angolo'])
+            df = pd.DataFrame(risultati, columns=['Tx_calc', 'Ty_calc', 'Angolo_calc'])
 
-            # 3. Poi faccio i calcoli dell'MSE per tutte le righe assieme
-            df['MSE_trasl'] = ((df['Tx'] - gt_val['Tx'])**2 + (df['Ty'] - gt_val['Ty'])**2) / 2
-            df['MSE_rot'] = (df['Angolo'] - gt_val['AngleRad'])**2
-            df['MSE_tot'] = df['MSE_trasl'] + df['MSE_rot']
+            # 3. Calcolo gli errori per ogni parametro
+            df['Err_Tx'] = df['Tx_calc'] - gt_val['Tx']
+            df['Err_Ty'] = df['Ty_calc'] - gt_val['Ty']
+            df['Err_Angolo'] = df['Angolo_calc'] - gt_val['AngleRad']
 
-            # 4. Calcolo media (il vero MSE sul dataset) e varianza dell'errore
-            media_trasl = df['MSE_trasl'].mean()
-            media_rot = df['MSE_rot'].mean()
-            media_tot = df['MSE_tot'].mean()
+            # 4. Calcolo gli MSE per riga (per informazione)
+            df['MSE_Scostamento'] = (df['Err_Tx']**2 + df['Err_Ty']**2)
+            df['MSE_Angolo'] = df['Err_Angolo']**2
             
-            # Varianze separate per capire dove il metodo è più instabile
-            var_trasl = df['MSE_trasl'].var()
-            var_rot = df['MSE_rot'].var()
+            # Mostro i risultati per ogni coppia di immagini (parametri calcolati e errori)
+            print(f"\n--- Risultati per METODO: {m}, BINS: {b} ---")
+            print(df[['Tx_calc', 'Ty_calc', 'Angolo_calc', 'Err_Tx', 'Err_Ty', 'Err_Angolo']].round(4))
+
+            # 5. Calcolo MSE globali per questo set di parametri
+            mse_scostamento = df['MSE_Scostamento'].mean()
+            mse_angolo = df['MSE_Angolo'].mean()
+            mse_totale = mse_scostamento + mse_angolo
             
             # Salvo per il riepilogo
-            riepilogo.append([m, b, media_trasl, var_trasl, media_rot, var_rot, media_tot])
-            
-            print(f"\nRisultati per metodo {m} e {b} bins:")
-            print(df.round(4))
+            riepilogo.append([m, b, mse_scostamento, mse_angolo, mse_totale])
 
     # Stampo la classifica finale
-    colonne = ['Metodo', 'Bins', 'Media_Trasl', 'Var_Trasl', 'Media_Rot', 'Var_Rot', 'Media_Totale']
+    colonne = ['Metodo', 'Bins', 'MSE_Scostamento', 'MSE_Angolo', 'MSE_Totale']
     df_finale = pd.DataFrame(riepilogo, columns=colonne)
-    print("\nCLASSIFICA FINALE DEI METODI")
-    print(df_finale.sort_values(by='Media_Totale').round(6))
+    print("\n" + "="*50)
+    print("RIEPILOGO FINALE (MSE)")
+    print("="*50)
+    print(df_finale.sort_values(by='MSE_Totale').round(6))
 
 if __name__ == "__main__":
     main()
