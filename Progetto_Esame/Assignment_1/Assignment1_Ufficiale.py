@@ -1,9 +1,3 @@
-# ***********************************************************************
-
-# NON MODIFICARE QUESTO FILE SE NON RICHIESTO ESPLICITAMENTE DALL'UTENTE
-
-# ***********************************************************************
-
 import cv2 as cv
 import numpy as np
 import pandas as pd
@@ -34,10 +28,11 @@ def load_dataset(PATH, filtri=True):
 
                 # Se il flag è True, applichiamo i filtri
                 if filtri:
+                    k = 5
                     imR = cv.cvtColor(imR, cv.COLOR_BGR2GRAY)
-                    imR = cv.GaussianBlur(imR, (3, 3), 0)
+                    imR = cv.GaussianBlur(imR, (k, k), 0)
                     imT = cv.cvtColor(imT, cv.COLOR_BGR2GRAY)
-                    imT = cv.GaussianBlur(imT, (3, 3), 0)
+                    imT = cv.GaussianBlur(imT, (k, k), 0)
 
                 yield (imR, imT)
 
@@ -85,11 +80,11 @@ def funzione_obiettivo(params, imR_img, imT_img, bins):
     return -mutua_informazione(imR_img, imT_warped, bins)
 
 def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
-    initial_guess = np.array([0.0, 0.0, 0.0])
+    initial_guess = np.array([0, 0, 0])
 
     opts = {}
     if metodo == 'BFGS':
-        opts = {'eps': [1.0, 1.0, 0.001]}
+        opts = {'eps': [1, 1, 0.001]}
 
     res = scipy.optimize.minimize(
         funzione_obiettivo,
@@ -151,9 +146,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# ***********************************************************************
-
-# NON MODIFICARE QUESTO FILE SE NON RICHIESTO ESPLICITAMENTE DALL'UTENTE
-
-# ***********************************************************************
