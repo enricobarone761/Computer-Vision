@@ -8,7 +8,7 @@ import cv2 as cv
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+#import seaborn as sns
 import os
 import scipy.optimize
 
@@ -35,9 +35,9 @@ def load_dataset(PATH, filtri=True):
                 # Se il flag è True, applichiamo i filtri
                 if filtri:
                     imR = cv.cvtColor(imR, cv.COLOR_BGR2GRAY)
-                    imR = cv.GaussianBlur(imR, (7, 7), 0)
+                    imR = cv.GaussianBlur(imR, (3, 3), 0)
                     imT = cv.cvtColor(imT, cv.COLOR_BGR2GRAY)
-                    imT = cv.GaussianBlur(imT, (7, 7), 0)
+                    imT = cv.GaussianBlur(imT, (3, 3), 0)
 
                 yield (imR, imT)
 
@@ -68,16 +68,16 @@ def mutua_informazione(img_ref, img_mov, bins):
     return H_ref + H_mov - H_joint
 
 def funzione_obiettivo(params, imR_img, imT_img, bins):
+
     tx, ty, theta = params
 
-    h, w = imT_img.shape
-    #cx, cy = w // 2, h // 2
+    # cv2.getRotationMatrix2D vuole l'angolo in gradi
+    theta_deg = np.degrees(theta)
 
-    # Matrice di rotazione e traslazione calcolata manualmente
-    T = np.array([
-        [np.cos(theta) , -np.sin(theta), tx],
-        [np.sin(theta), np.cos(theta), ty]
-    ], dtype=np.float32)
+    h, w = imT_img.shape
+    T = cv.getRotationMatrix2D((w/2, h/2), theta_deg, 1)
+    T[0, 2] += tx
+    T[1, 2] += ty
 
     imT_warped = cv.warpAffine(imT_img, T, (w, h), flags=cv.INTER_LINEAR)
 
@@ -131,21 +131,23 @@ def main():
             print(f"\n--- Risultati per METODO: {m}, BINS: {b} ---")
             print(df[['Tx_calc', 'Ty_calc', 'Angolo_calc', 'Err_Tx', 'Err_Ty', 'Err_Angolo']].round(4))
 
-            # 5. Calcolo MSE globali per questo set di parametri
+            # 5. Calcolo MSE globali e statistiche
+            errori_totali = df['MSE_Scostamento'] + df['MSE_Angolo']
             mse_scostamento = df['MSE_Scostamento'].mean()
             mse_angolo = df['MSE_Angolo'].mean()
-            mse_totale = mse_scostamento + mse_angolo
+            media_totale = errori_totali.mean()
+            varianza_totale = errori_totali.var()
             
             # Salvo per il riepilogo
-            riepilogo.append([m, b, mse_scostamento, mse_angolo, mse_totale])
+            riepilogo.append([m, b, mse_scostamento, mse_angolo, media_totale, varianza_totale])
 
     # Stampo la classifica finale
-    colonne = ['Metodo', 'Bins', 'MSE_Scostamento', 'MSE_Angolo', 'MSE_Totale']
+    colonne = ['Metodo', 'Bins', 'MSE_Scostamento', 'MSE_Angolo', 'Media', 'Varianza']
     df_finale = pd.DataFrame(riepilogo, columns=colonne)
-    print("\n" + "="*50)
-    print("RIEPILOGO FINALE (MSE)")
-    print("="*50)
-    print(df_finale.sort_values(by='MSE_Totale').round(6))
+    print("\n" + "="*80)
+    print("RIEPILOGO FINALE (MSE, MEDIA E VARIANZA)")
+    print("="*80)
+    print(df_finale.sort_values(by='Media').round(6))
 
 if __name__ == "__main__":
     main()
