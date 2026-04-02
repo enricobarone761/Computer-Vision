@@ -2,6 +2,7 @@ import cv2 as cv
 import numpy as np
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
 import Assignment1_Ufficiale as A1
 
 # Percorsi
@@ -11,7 +12,7 @@ GT_PATH = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "GT.csv")
 # ==========================================
 # INSERISCI QUI I PARAMETRI SCELTI!
 # ==========================================
-METODO_SCELTO = 'Powell'  # Puoi cambiarlo con 'BFGS' o 'Powell'
+METODO_SCELTO = 'Nelder-Mead'  # Puoi cambiarlo con 'BFGS' o 'Powell'
 BINS_SCELTI = 128              # 64, 128 o 256
 # ==========================================
 
@@ -20,55 +21,75 @@ def main():
     dati = list(A1.load_dataset(PATH_TEST, filtri=False))
     gt = pd.read_csv(GT_PATH, sep=';')
     gt = gt[gt['Dataset'] == 'test'].reset_index(drop=True)
-    
     risultati = []
-    conto = 0
     
-    for r, t in dati:
+    for i in range(len(dati)):
+        imR = dati[i][0]
+        imT = dati[i][1]
         # preparo le immagini in grigio
-        r_gray = cv.cvtColor(r, cv.COLOR_BGR2GRAY)
-        r_gray = cv.GaussianBlur(r_gray, (7, 7), 0)
-        t_gray = cv.cvtColor(t, cv.COLOR_BGR2GRAY)
-        t_gray = cv.GaussianBlur(t_gray, (7, 7), 0)
+        imR_mod = cv.GaussianBlur(cv.cvtColor(imR, cv.COLOR_BGR2GRAY), (7, 7), 0)
+        imT_mod = cv.GaussianBlur(cv.cvtColor(imT, cv.COLOR_BGR2GRAY), (7, 7), 0)
 
         # trovo parametri
-        tx, ty, angolo = A1.massimizza_mutua_informazione(r_gray, t_gray, BINS_SCELTI, METODO_SCELTO)
-        risultati.append([tx, ty, angolo])
+        tx, ty, angolo = A1.massimizza_mutua_informazione(imR_mod, imT_mod, BINS_SCELTI, METODO_SCELTO)
         
         # creo l'immagine per farla vedere
-        h , w = t_gray.shape
+        h , w = imT_mod.shape
 
         M = cv.getRotationMatrix2D((w // 2, h // 2), np.degrees(angolo), 1.0)
-        M[0, 2] = M[0, 2] + tx
-        M[1, 2] = M[1, 2] + ty
-        t_allineata = cv.warpAffine(t, M, (w, h))
+        M[0, 2] += tx
+        M[1, 2] += ty
+        imT_allineata = cv.warpAffine(imT, M, (w, h))
         
-        diff = cv.absdiff(r, t_allineata)
-        finestra = np.hstack((r, t_allineata, diff))
+        diff = cv.absdiff(imR, imT_allineata)
         
-        cv.imshow("Risultato " + str(conto), finestra)
-        cv.waitKey(0)    
-        cv.destroyAllWindows()
+        # Calcolo degli errori per la visualizzazione e per i risultati finali
+        err_tx = tx - gt.loc[i, 'Tx']
+        err_ty = ty - gt.loc[i, 'Ty']
+        err_angolo = angolo - gt.loc[i, 'AngleRad']
         
-        conto = conto + 1
+        risultati.append([tx, ty, angolo, err_tx, err_ty, err_angolo])
 
-    # calcolo errori finali
-    df = pd.DataFrame(risultati, columns=['Tx', 'Ty', 'Angolo'])
-    df['MSE_trasl'] = ((df['Tx'] - gt['Tx'])**2 + (df['Ty'] - gt['Ty'])**2) / 2
-    df['MSE_rot'] = (df['Angolo'] - gt['AngleRad'])**2
-    df['MSE_tot'] = df['MSE_trasl'] + df['MSE_rot']
+        # 1. Anaglifo (Rosso della statica + Verde/Blu della allineata)
+        anaglifo = np.zeros_like(imR)
+        anaglifo[:,:,0] = imR[:,:,2] # R
+        anaglifo[:,:,1] = imT_allineata[:,:,1] # G
+        anaglifo[:,:,2] = imT_allineata[:,:,0] # B
 
-    media_trasl = df['MSE_trasl'].mean()
-    media_rot = df['MSE_rot'].mean()
-    media_tot = df['MSE_tot'].mean()
+        # Visualizzazione
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(30, 4))
+        
+        ax1.imshow(cv.cvtColor(imR, cv.COLOR_BGR2RGB)); 
+        ax1.set_title("Statica")
+
+        ax2.imshow(cv.cvtColor(imT_allineata, cv.COLOR_BGR2RGB)); 
+        ax2.set_title("Allineata")
+
+        ax3.imshow(cv.cvtColor(diff, cv.COLOR_BGR2RGB)); 
+        ax3.set_title("Differenza")
+
+        ax4.imshow(anaglifo); 
+        ax4.set_title("Anaglifo")
+        
+        plt.suptitle(f"Test {i + 1} | Tx:{tx:.2f} Ty:{ty:.2f} Ang:{angolo:.4f} | ErrTx:{err_tx:.2f} ErrTy:{err_ty:.2f} ErrAng:{err_angolo:.4f}")
+        plt.show()
+
+    # creo DataFrame finale direttamente con tutti i dati calcolati
+    colonne = ['Tx_calc', 'Ty_calc', 'Angolo_calc', 'Err_Tx', 'Err_Ty', 'Err_Angolo']
+    df = pd.DataFrame(risultati, columns=colonne)
+
+    # Mostro i risultati per ogni coppia di immagini
+    print(f"\n--- Risultati per METODO: {METODO_SCELTO}, BINS: {BINS_SCELTI} ---")
+    print(df.round(4))
+
+    # Calcolo MSE e stampo riepilogo
+    df['MSE_Scostamento'] = df['Err_Tx']**2 + df['Err_Ty']**2
+    df['MSE_Angolo'] = df['Err_Angolo']**2
+    df['Errore_Totale'] = df['MSE_Scostamento'] + df['MSE_Angolo']
     
-    var_trasl = df['MSE_trasl'].var()
-    var_rot = df['MSE_rot'].var()
-
-    print(df)
-    print("Media traslazione:", media_trasl, "| Varianza:", var_trasl)
-    print("Media rotazione:", media_rot, "| Varianza:", var_rot)
-    print("Media totale:", media_tot)
+    print("\n--- RIEPILOGO FINALE ---")
+    dati_finale = [[METODO_SCELTO, BINS_SCELTI, df['MSE_Scostamento'].mean(), df['MSE_Angolo'].mean(), df['Errore_Totale'].mean(), df['Errore_Totale'].var()]]
+    print(pd.DataFrame(dati_finale, columns=['Metodo', 'Bins', 'MSE_Scostamento', 'MSE_Angolo', 'Media', 'Varianza']).round(4))
 
 if __name__ == "__main__":
     main()
