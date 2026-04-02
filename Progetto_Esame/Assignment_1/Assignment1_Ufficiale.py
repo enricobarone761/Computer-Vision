@@ -98,7 +98,7 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
 def main():
     immagini = list(load_dataset(PATH_VAL))
     gt = pd.read_csv(GT_PATH, sep=';')
-    gt_val = gt[gt['Dataset'] == 'val'].reset_index(drop=True)
+    gt_val = gt[gt['Dataset'] == 'val']
     
     riepilogo = []
 
@@ -124,7 +124,7 @@ def main():
             
             # Mostro i risultati per ogni coppia di immagini (parametri calcolati e errori)
             print(f"\n--- Risultati per METODO: {m}, BINS: {b} ---")
-            print(df[['Tx_calc', 'Ty_calc', 'Angolo_calc', 'Err_Tx', 'Err_Ty', 'Err_Angolo']].round(4))
+            print(df[['Tx_calc', 'Ty_calc', 'Angolo_calc', 'Err_Tx', 'Err_Ty', 'Err_Angolo']])
 
             # 5. Calcolo MSE globali e statistiche
             errori_totali = df['MSE_Scostamento'] + df['MSE_Angolo']
