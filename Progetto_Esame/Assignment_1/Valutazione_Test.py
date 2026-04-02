@@ -27,8 +27,8 @@ def main():
         imR = dati[i][0]
         imT = dati[i][1]
         # preparo le immagini in grigio
-        imR_mod = cv.GaussianBlur(cv.cvtColor(imR, cv.COLOR_BGR2GRAY), (7, 7), 0)
-        imT_mod = cv.GaussianBlur(cv.cvtColor(imT, cv.COLOR_BGR2GRAY), (7, 7), 0)
+        imR_mod = cv.GaussianBlur(cv.cvtColor(imR, cv.COLOR_BGR2GRAY), (5, 5), 0)
+        imT_mod = cv.GaussianBlur(cv.cvtColor(imT, cv.COLOR_BGR2GRAY), (5, 5), 0)
 
         # trovo parametri
         tx, ty, angolo = A1.massimizza_mutua_informazione(imR_mod, imT_mod, BINS_SCELTI, METODO_SCELTO)
