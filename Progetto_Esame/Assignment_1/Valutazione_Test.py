@@ -12,7 +12,7 @@ GT_PATH = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "GT.csv")
 # ==========================================
 # INSERISCI QUI I PARAMETRI SCELTI!
 # ==========================================
-METODO_SCELTO = 'Nelder-Mead'  # Puoi cambiarlo con 'BFGS' o 'Powell'
+METODO_SCELTO = 'Powell'  # Puoi cambiarlo con 'BFGS' o 'Powell'
 BINS_SCELTI = 128              # 64, 128 o 256
 # ==========================================
 
@@ -50,26 +50,17 @@ def main():
         
         risultati.append([tx, ty, angolo, err_tx, err_ty, err_angolo])
 
-        # 1. Anaglifo (Rosso della statica + Verde/Blu della allineata)
-        anaglifo = np.zeros_like(imR)
-        anaglifo[:,:,0] = imR[:,:,2] # R
-        anaglifo[:,:,1] = imT_allineata[:,:,1] # G
-        anaglifo[:,:,2] = imT_allineata[:,:,0] # B
-
-        # Visualizzazione
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(30, 4))
+        # Visualizzazione semplice
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 4))
         
-        ax1.imshow(cv.cvtColor(imR, cv.COLOR_BGR2RGB)); 
+        ax1.imshow(cv.cvtColor(imR, cv.COLOR_BGR2RGB))
         ax1.set_title("Statica")
-
-        ax2.imshow(cv.cvtColor(imT_allineata, cv.COLOR_BGR2RGB)); 
+        
+        ax2.imshow(cv.cvtColor(imT_allineata, cv.COLOR_BGR2RGB))
         ax2.set_title("Allineata")
-
-        ax3.imshow(cv.cvtColor(diff, cv.COLOR_BGR2RGB)); 
+        
+        ax3.imshow(cv.cvtColor(diff, cv.COLOR_BGR2RGB))
         ax3.set_title("Differenza")
-
-        ax4.imshow(anaglifo); 
-        ax4.set_title("Anaglifo")
         
         plt.suptitle(f"Test {i + 1} | Tx:{tx:.2f} Ty:{ty:.2f} Ang:{angolo:.4f} | ErrTx:{err_tx:.2f} ErrTy:{err_ty:.2f} ErrAng:{err_angolo:.4f}")
         plt.show()
