@@ -13,7 +13,7 @@ GT_PATH = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "GT.csv")
 # ==========================================
 # INSERISCI QUI I PARAMETRI SCELTI!
 # ==========================================
-METODO = 'Powell'  
+METODO = 'Nelder-Mead'  
 BINS = 64              
 # ==========================================
 

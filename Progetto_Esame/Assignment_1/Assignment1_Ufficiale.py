@@ -84,8 +84,20 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
     initial_guess = np.array([0, 0, 0])
 
     opts = {}
+    if metodo == 'Nelder-Mead':
+        # Con x0 = [0,0,0] il simplesso di default e' troppo piccolo.
+        simplesso_iniziale=np.array([[0, 0, 0],
+                                     [1, 0, 0],
+                                     [0, 1, 0],
+                                     [0, 0, 0.01]],
+                                     dtype=np.float32)
+
+        opts = {
+            'initial_simplex': simplesso_iniziale,
+        }
+
     if metodo == 'BFGS':
-        opts = {'eps': [1, 1, 0.001]}
+        opts = {'eps': [1, 1, 0.01]}
 
     grafico_MI = []
 
