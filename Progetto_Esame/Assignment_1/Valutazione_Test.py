@@ -13,8 +13,8 @@ GT_PATH = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "GT.csv")
 # ==========================================
 # INSERISCI QUI I PARAMETRI SCELTI!
 # ==========================================
-METODO = 'Powell'  # Puoi cambiarlo con 'BFGS' o 'Powell'
-BINS = 64              # 64, 128 o 256
+METODO = 'Powell'  
+BINS = 64              
 # ==========================================
 
 def main():
@@ -76,22 +76,10 @@ def main():
     print(df.round(4))
 
     # Calcolo RMSE e statistiche
-    rmse_angolo = root_mean_squared_error(df['Angolo_calc'], gt['AngleRad'])
-    rmse_tx = root_mean_squared_error(df['Tx_calc'], gt['Tx'])
-    rmse_ty = root_mean_squared_error(df['Ty_calc'], gt['Ty'])
-
-    media_errore_traslazione = df[['Err_Tx', 'Err_Ty']].abs().mean().mean()
-    media_errore_angolo = df['Err_Angolo'].abs().mean()
-    deviazione_std_errore_traslazione = df[['Err_Tx', 'Err_Ty']].std().mean()
-    deviazione_std_errore_angolo = df['Err_Angolo'].std()
+    statistiche = A1.calcola_statistiche(df, gt, METODO, BINS)
 
     # Stampo riepilogo
-    print("\n" + "="*80)
-    print("RIEPILOGO FINALE")
-    print("="*80)
-    dati_finale = [[METODO, BINS, rmse_tx, rmse_ty, rmse_angolo, media_errore_traslazione, media_errore_angolo, deviazione_std_errore_traslazione, deviazione_std_errore_angolo]]
-    colonne = ['Metodo', 'Bins', 'RMSE_Tx', 'RMSE_Ty', 'RMSE_Angolo', 'Media_Err_XY', 'Media_Err_Angolo', 'STD_Err_XY', 'STD_Err_Angolo']
-    print(pd.DataFrame(dati_finale, columns=colonne).round(4))
+    A1.stampa_riepilogo_finale([statistiche])
 
 if __name__ == "__main__":
     main()

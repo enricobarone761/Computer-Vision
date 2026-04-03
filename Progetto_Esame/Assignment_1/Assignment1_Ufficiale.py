@@ -70,10 +70,7 @@ def funzione_obiettivo(params, imR_img, imT_img, bins):
     #theta_deg = np.degrees(theta)
 
     h, w = imT_img.shape
-    # T = cv.getRotationMatrix2D((w/2, h/2), theta_deg, 1)
-    # T[0, 2] += tx
-    # T[1, 2] += ty
-
+    
     T = np.array([[np.cos(theta), -np.sin(theta), tx], 
                   [np.sin(theta),  np.cos(theta), ty]],
                   dtype=np.float32)
@@ -116,6 +113,36 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
 
     return res.x
 
+def calcola_statistiche(df, gt, metodo, bins):
+    rmse_angolo = root_mean_squared_error(df['Angolo_calc'], gt['AngleRad'])
+    rmse_tx = root_mean_squared_error(df['Tx_calc'], gt['Tx'])
+    rmse_ty = root_mean_squared_error(df['Ty_calc'], gt['Ty'])
+
+    media_errore_traslazione = df[['Err_Tx', 'Err_Ty']].abs().mean().mean()
+    media_errore_angolo = df['Err_Angolo'].abs().mean()
+    deviazione_std_errore_traslazione = df[['Err_Tx', 'Err_Ty']].std().mean()
+    deviazione_std_errore_angolo = df['Err_Angolo'].std()
+
+    return [
+        metodo,
+        bins,
+        rmse_tx,
+        rmse_ty,
+        rmse_angolo,
+        media_errore_traslazione,
+        media_errore_angolo,
+        deviazione_std_errore_traslazione,
+        deviazione_std_errore_angolo
+    ]
+
+def stampa_riepilogo_finale(riepilogo):
+    colonne = ['Metodo', 'Bins', 'RMSE_Tx', 'RMSE_Ty', 'RMSE_Angolo', 'Media_Err_XY', 'Media_Err_Angolo', 'STD_Err_XY', 'STD_Err_Angolo']
+    df_finale = pd.DataFrame(riepilogo, columns=colonne)
+    print("\n" + "="*80)
+    print("RIEPILOGO FINALE (ORDINATO PER MEDIA)")
+    print("="*80)
+    print(df_finale.sort_values(by='Media_Err_XY', ascending=False).round(4))
+
 def main():
     immagini = list(load_dataset(PATH_VAL))
     gt = pd.read_csv(GT_PATH, sep=';')
@@ -144,35 +171,11 @@ def main():
             print(df[['Tx_calc', 'Ty_calc', 'Angolo_calc', 'Err_Tx', 'Err_Ty', 'Err_Angolo']])
 
             # 5. Calcolo MSE globali e statistiche
-            rmse_angolo = root_mean_squared_error(df['Angolo_calc'], gt_val['AngleRad'])
-            rmse_tx = root_mean_squared_error(df['Tx_calc'], gt_val['Tx'])
-            rmse_ty = root_mean_squared_error(df['Ty_calc'], gt_val['Ty'])
-
-            media_errore_traslazione = df[['Err_Tx', 'Err_Ty']].abs().mean().mean()
-            media_errore_angolo = df['Err_Angolo'].abs().mean()
-            deviazione_std_errore_traslazione = df[['Err_Tx', 'Err_Ty']].std().mean()
-            deviazione_std_errore_angolo = df['Err_Angolo'].std()
-
-            # Salvo per il riepilogo
-            riepilogo.append([
-                m,
-                b,
-                rmse_tx,
-                rmse_ty,
-                rmse_angolo,
-                media_errore_traslazione,
-                media_errore_angolo,
-                deviazione_std_errore_traslazione,
-                deviazione_std_errore_angolo
-            ])
+            statistiche = calcola_statistiche(df, gt_val, m, b)
+            riepilogo.append(statistiche)
 
     # Stampo la classifica finale
-    colonne = ['Metodo', 'Bins', 'RMSE_Tx', 'RMSE_Ty', 'RMSE_Angolo', 'Media_Err_XY', 'Media_Err_Angolo', 'STD_Err_XY', 'STD_Err_Angolo']
-    df_finale = pd.DataFrame(riepilogo, columns=colonne)
-    print("\n" + "="*80)
-    print("RIEPILOGO FINALE (ORDINATO PER MEDIA)")
-    print("="*80)
-    print(df_finale.sort_values(by='Media_Err_XY', ascending=False).round(4))
+    stampa_riepilogo_finale(riepilogo, ordina=True)
 
 if __name__ == "__main__":
     main()
