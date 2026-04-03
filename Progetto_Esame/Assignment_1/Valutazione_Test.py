@@ -2,20 +2,15 @@ import cv2 as cv
 import numpy as np
 import pandas as pd
 import os
-import matplotlib.pyplot as plt
-from sklearn.metrics import root_mean_squared_error
 import Assignment1_Ufficiale as A1
 
-# Percorsi
 PATH_TEST = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "test")
 GT_PATH = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "GT.csv")
 
-# ==========================================
-# INSERISCI QUI I PARAMETRI SCELTI!
-# ==========================================
+#PARAMETRI SCELTI CON IL VALIDATION SET
 METODO = 'Nelder-Mead'  
 BINS = 64              
-# ==========================================
+
 
 def main():
     

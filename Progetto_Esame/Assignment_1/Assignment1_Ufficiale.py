@@ -9,6 +9,7 @@ from sklearn.metrics import root_mean_squared_error, mean_squared_error
 PATH_VAL = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "val")
 PATH_TEST = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "test")
 GT_PATH = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "GT.csv")
+
 METODO = ['Powell', 'Nelder-Mead', 'BFGS']
 BINS = [64,128,256]
 
