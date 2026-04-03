@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 #import seaborn as sns
 import os
 import scipy.optimize
+from sklearn.metrics import root_mean_squared_error, mean_squared_error
 
 PATH_VAL = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "val")
 PATH_TEST = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "test")
@@ -67,12 +68,16 @@ def funzione_obiettivo(params, imR_img, imT_img, bins):
     tx, ty, theta = params
 
     # cv2.getRotationMatrix2D vuole l'angolo in gradi
-    theta_deg = np.degrees(theta)
+    #theta_deg = np.degrees(theta)
 
     h, w = imT_img.shape
-    T = cv.getRotationMatrix2D((w/2, h/2), theta_deg, 1)
-    T[0, 2] += tx
-    T[1, 2] += ty
+    # T = cv.getRotationMatrix2D((w/2, h/2), theta_deg, 1)
+    # T[0, 2] += tx
+    # T[1, 2] += ty
+
+    T = np.array([[np.cos(theta), -np.sin(theta), tx], 
+                  [np.sin(theta),  np.cos(theta), ty]],
+                  dtype=np.float32)
 
     imT_warped = cv.warpAffine(imT_img, T, (w, h), flags=cv.INTER_LINEAR)
 
@@ -117,32 +122,41 @@ def main():
             df['Err_Tx'] = df['Tx_calc'] - gt_val['Tx']
             df['Err_Ty'] = df['Ty_calc'] - gt_val['Ty']
             df['Err_Angolo'] = df['Angolo_calc'] - gt_val['AngleRad']
-
-            # 4. Calcolo gli MSE per riga (per informazione)
-            df['MSE_Scostamento'] = (df['Err_Tx']**2 + df['Err_Ty']**2)
-            df['MSE_Angolo'] = df['Err_Angolo']**2
             
             # Mostro i risultati per ogni coppia di immagini (parametri calcolati e errori)
             print(f"\n--- Risultati per METODO: {m}, BINS: {b} ---")
             print(df[['Tx_calc', 'Ty_calc', 'Angolo_calc', 'Err_Tx', 'Err_Ty', 'Err_Angolo']])
 
             # 5. Calcolo MSE globali e statistiche
-            errori_totali = df['MSE_Scostamento'] + df['MSE_Angolo']
-            mse_scostamento = df['MSE_Scostamento'].mean()
-            mse_angolo = df['MSE_Angolo'].mean()
-            media_totale = errori_totali.mean()
-            varianza_totale = errori_totali.var()
-            
+            rmse_angolo = root_mean_squared_error(df['Angolo_calc'], gt_val['AngleRad'])
+            rmse_tx = root_mean_squared_error(df['Tx_calc'], gt_val['Tx'])
+            rmse_ty = root_mean_squared_error(df['Ty_calc'], gt_val['Ty'])
+
+            media_errore_traslazione = df[['Err_Tx', 'Err_Ty']].mean().mean()
+            media_errore_angolo = df['Err_Angolo'].mean()
+            deviazione_std_errore_traslazione = df[['Err_Tx', 'Err_Ty']].std().mean()
+            deviazione_std_errore_angolo = df['Err_Angolo'].std()
+
             # Salvo per il riepilogo
-            riepilogo.append([m, b, mse_scostamento, mse_angolo, media_totale, varianza_totale])
+            riepilogo.append([
+                m,
+                b,
+                rmse_tx,
+                rmse_ty,
+                rmse_angolo,
+                media_errore_traslazione,
+                media_errore_angolo,
+                deviazione_std_errore_traslazione,
+                deviazione_std_errore_angolo
+            ])
 
     # Stampo la classifica finale
-    colonne = ['Metodo', 'Bins', 'MSE_Scostamento', 'MSE_Angolo', 'Media', 'Varianza']
+    colonne = ['Metodo', 'Bins', 'RMSE_Tx', 'RMSE_Ty', 'RMSE_Angolo', 'Media_Err_XY', 'Media_Err_Angolo', 'STD_Err_XY', 'STD_Err_Angolo']
     df_finale = pd.DataFrame(riepilogo, columns=colonne)
     print("\n" + "="*80)
-    print("RIEPILOGO FINALE (MSE, MEDIA E VARIANZA)")
+    print("RIEPILOGO FINALE (RMSE, MEDIA E VARIANZA)")
     print("="*80)
-    print(df_finale.sort_values(by='Media').round(6))
+    print(df_finale.round(4))
 
 if __name__ == "__main__":
     main()

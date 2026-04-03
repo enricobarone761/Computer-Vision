@@ -13,7 +13,7 @@ GT_PATH = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "GT.csv")
 # INSERISCI QUI I PARAMETRI SCELTI!
 # ==========================================
 METODO_SCELTO = 'Powell'  # Puoi cambiarlo con 'BFGS' o 'Powell'
-BINS_SCELTI = 128              # 64, 128 o 256
+BINS_SCELTI = 64              # 64, 128 o 256
 # ==========================================
 
 def main():
@@ -31,24 +31,25 @@ def main():
         imT_mod = cv.GaussianBlur(cv.cvtColor(imT, cv.COLOR_BGR2GRAY), (5, 5), 0)
 
         # trovo parametri
-        tx, ty, angolo = A1.massimizza_mutua_informazione(imR_mod, imT_mod, BINS_SCELTI, METODO_SCELTO)
+        tx, ty, theta = A1.massimizza_mutua_informazione(imR_mod, imT_mod, BINS_SCELTI, METODO_SCELTO)
         
         # creo l'immagine per farla vedere
         h , w = imT_mod.shape
 
-        M = cv.getRotationMatrix2D((w // 2, h // 2), np.degrees(angolo), 1.0)
-        M[0, 2] += tx
-        M[1, 2] += ty
-        imT_allineata = cv.warpAffine(imT, M, (w, h))
+        T = np.array([[np.cos(theta), -np.sin(theta), tx], 
+                      [np.sin(theta),  np.cos(theta), ty]],
+                      dtype=np.float32)
+
+        imT_allineata = cv.warpAffine(imT, T, (w, h), flags=cv.INTER_LINEAR)
         
         diff = cv.absdiff(imR, imT_allineata)
         
         # Calcolo degli errori per la visualizzazione e per i risultati finali
         err_tx = tx - gt.loc[i, 'Tx']
         err_ty = ty - gt.loc[i, 'Ty']
-        err_angolo = angolo - gt.loc[i, 'AngleRad']
+        err_angolo = theta - gt.loc[i, 'AngleRad']
         
-        risultati.append([tx, ty, angolo, err_tx, err_ty, err_angolo])
+        risultati.append([tx, ty, theta, err_tx, err_ty, err_angolo])
 
         # Visualizzazione semplice
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 4))
@@ -62,7 +63,7 @@ def main():
         ax3.imshow(cv.cvtColor(diff, cv.COLOR_BGR2RGB))
         ax3.set_title("Differenza")
         
-        plt.suptitle(f"Test {i + 1} | Tx:{tx:.2f} Ty:{ty:.2f} Ang:{angolo:.4f} | ErrTx:{err_tx:.2f} ErrTy:{err_ty:.2f} ErrAng:{err_angolo:.4f}")
+        plt.suptitle(f"Test {i + 1} | Tx:{tx:.2f} Ty:{ty:.2f} Ang:{theta:.4f} | ErrTx:{err_tx:.2f} ErrTy:{err_ty:.2f} ErrAng:{err_angolo:.4f}")
         plt.show()
 
     # creo DataFrame finale direttamente con tutti i dati calcolati
