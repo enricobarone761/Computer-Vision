@@ -2,7 +2,6 @@ import cv2 as cv
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-#import seaborn as sns
 import os
 import scipy.optimize
 from sklearn.metrics import root_mean_squared_error, mean_squared_error
@@ -154,9 +153,9 @@ def main():
     colonne = ['Metodo', 'Bins', 'RMSE_Tx', 'RMSE_Ty', 'RMSE_Angolo', 'Media_Err_XY', 'Media_Err_Angolo', 'STD_Err_XY', 'STD_Err_Angolo']
     df_finale = pd.DataFrame(riepilogo, columns=colonne)
     print("\n" + "="*80)
-    print("RIEPILOGO FINALE (RMSE, MEDIA E VARIANZA)")
+    print("RIEPILOGO FINALE (ORDINATO PER MEDIA)")
     print("="*80)
-    print(df_finale.round(4))
+    print(df_finale.sort_values(by='Media_Err_XY', ascending=False).round(4))
 
 if __name__ == "__main__":
     main()
