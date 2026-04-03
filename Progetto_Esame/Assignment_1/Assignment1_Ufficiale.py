@@ -90,13 +90,30 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
     if metodo == 'BFGS':
         opts = {'eps': [1, 1, 0.001]}
 
+    storia_MI = []
+
+    def callback_ottimizzazione(x_k):
+        valore_mi = -funzione_obiettivo(x_k, imR_mod, imT_mod, bins)
+        storia_MI.append(valore_mi)
+
     res = scipy.optimize.minimize(
         funzione_obiettivo,
         initial_guess,
         args=(imR_mod, imT_mod, bins),
         method=metodo,
-        options=opts
+        options=opts,
+        callback=callback_ottimizzazione
     )
+
+    if len(storia_MI) > 0:
+        plt.figure(figsize=(8, 5))
+        plt.plot(range(1, len(storia_MI) + 1), storia_MI, marker='o', linestyle='-', color='b')
+        plt.title(f'Andamento Mutua Informazione\nMetodo: {metodo}, Bins: {bins}')
+        plt.xlabel('Numero Iterazione')
+        plt.ylabel('Valore Mutua Informazione')
+        plt.grid(True)
+        plt.show()
+
     return res.x
 
 def main():
@@ -131,8 +148,8 @@ def main():
             rmse_tx = root_mean_squared_error(df['Tx_calc'], gt_val['Tx'])
             rmse_ty = root_mean_squared_error(df['Ty_calc'], gt_val['Ty'])
 
-            media_errore_traslazione = df[['Err_Tx', 'Err_Ty']].mean().mean()
-            media_errore_angolo = df['Err_Angolo'].mean()
+            media_errore_traslazione = df[['Err_Tx', 'Err_Ty']].abs().mean().mean()
+            media_errore_angolo = df['Err_Angolo'].abs().mean()
             deviazione_std_errore_traslazione = df[['Err_Tx', 'Err_Ty']].std().mean()
             deviazione_std_errore_angolo = df['Err_Angolo'].std()
 

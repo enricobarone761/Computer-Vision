@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
+from sklearn.metrics import root_mean_squared_error
 import Assignment1_Ufficiale as A1
 
 # Percorsi
@@ -12,8 +13,8 @@ GT_PATH = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "GT.csv")
 # ==========================================
 # INSERISCI QUI I PARAMETRI SCELTI!
 # ==========================================
-METODO_SCELTO = 'Powell'  # Puoi cambiarlo con 'BFGS' o 'Powell'
-BINS_SCELTI = 64              # 64, 128 o 256
+METODO = 'Powell'  # Puoi cambiarlo con 'BFGS' o 'Powell'
+BINS = 64              # 64, 128 o 256
 # ==========================================
 
 def main():
@@ -31,7 +32,7 @@ def main():
         imT_mod = cv.GaussianBlur(cv.cvtColor(imT, cv.COLOR_BGR2GRAY), (5, 5), 0)
 
         # trovo parametri
-        tx, ty, theta = A1.massimizza_mutua_informazione(imR_mod, imT_mod, BINS_SCELTI, METODO_SCELTO)
+        tx, ty, theta = A1.massimizza_mutua_informazione(imR_mod, imT_mod, BINS, METODO)
         
         # creo l'immagine per farla vedere
         h , w = imT_mod.shape
@@ -71,17 +72,26 @@ def main():
     df = pd.DataFrame(risultati, columns=colonne)
 
     # Mostro i risultati per ogni coppia di immagini
-    print(f"\n--- Risultati per METODO: {METODO_SCELTO}, BINS: {BINS_SCELTI} ---")
+    print(f"\n--- Risultati per METODO: {METODO}, BINS: {BINS} ---")
     print(df.round(4))
 
-    # Calcolo MSE e stampo riepilogo
-    df['MSE_Scostamento'] = df['Err_Tx']**2 + df['Err_Ty']**2
-    df['MSE_Angolo'] = df['Err_Angolo']**2
-    df['Errore_Totale'] = df['MSE_Scostamento'] + df['MSE_Angolo']
-    
-    print("\n--- RIEPILOGO FINALE ---")
-    dati_finale = [[METODO_SCELTO, BINS_SCELTI, df['MSE_Scostamento'].mean(), df['MSE_Angolo'].mean(), df['Errore_Totale'].mean(), df['Errore_Totale'].var()]]
-    print(pd.DataFrame(dati_finale, columns=['Metodo', 'Bins', 'MSE_Scostamento', 'MSE_Angolo', 'Media', 'Varianza']).round(4))
+    # Calcolo RMSE e statistiche
+    rmse_angolo = root_mean_squared_error(df['Angolo_calc'], gt['AngleRad'])
+    rmse_tx = root_mean_squared_error(df['Tx_calc'], gt['Tx'])
+    rmse_ty = root_mean_squared_error(df['Ty_calc'], gt['Ty'])
+
+    media_errore_traslazione = df[['Err_Tx', 'Err_Ty']].abs().mean().mean()
+    media_errore_angolo = df['Err_Angolo'].abs().mean()
+    deviazione_std_errore_traslazione = df[['Err_Tx', 'Err_Ty']].std().mean()
+    deviazione_std_errore_angolo = df['Err_Angolo'].std()
+
+    # Stampo riepilogo
+    print("\n" + "="*80)
+    print("RIEPILOGO FINALE")
+    print("="*80)
+    dati_finale = [[METODO, BINS, rmse_tx, rmse_ty, rmse_angolo, media_errore_traslazione, media_errore_angolo, deviazione_std_errore_traslazione, deviazione_std_errore_angolo]]
+    colonne = ['Metodo', 'Bins', 'RMSE_Tx', 'RMSE_Ty', 'RMSE_Angolo', 'Media_Err_XY', 'Media_Err_Angolo', 'STD_Err_XY', 'STD_Err_Angolo']
+    print(pd.DataFrame(dati_finale, columns=colonne).round(4))
 
 if __name__ == "__main__":
     main()
