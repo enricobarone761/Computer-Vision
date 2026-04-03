@@ -19,22 +19,22 @@ BINS = 64
 
 def main():
     
-    dati = list(A1.load_dataset(PATH_TEST, filtri=False))
-    gt = pd.read_csv(GT_PATH, sep=';')
-    gt = gt[gt['Dataset'] == 'test'].reset_index(drop=True)
+    immagini = list(A1.load_dataset(PATH_TEST, filtri=False))
+    gt_test = pd.read_csv(GT_PATH, sep=';')
+    gt_test = gt_test[gt_test['Dataset'] == 'test'].reset_index(drop=True)
+
     risultati = []
     
-    for i in range(len(dati)):
-        imR = dati[i][0]
-        imT = dati[i][1]
+    for i in range(len(immagini)):
+        imR = immagini[i][0]
+        imT = immagini[i][1]
         # preparo le immagini in grigio
         imR_mod = cv.GaussianBlur(cv.cvtColor(imR, cv.COLOR_BGR2GRAY), (5, 5), 0)
         imT_mod = cv.GaussianBlur(cv.cvtColor(imT, cv.COLOR_BGR2GRAY), (5, 5), 0)
 
-        # trovo parametri
-        tx, ty, theta = A1.massimizza_mutua_informazione(imR_mod, imT_mod, BINS, METODO)
+        # stimo i parametri con bin e metodo deciso con il validation set
+        (tx, ty, theta), grafico_MI = A1.massimizza_mutua_informazione(imR_mod, imT_mod, BINS, METODO)
         
-        # creo l'immagine per farla vedere
         h , w = imT_mod.shape
 
         T = np.array([[np.cos(theta), -np.sin(theta), tx], 
@@ -43,40 +43,33 @@ def main():
 
         imT_allineata = cv.warpAffine(imT, T, (w, h), flags=cv.INTER_LINEAR)
         
-        diff = cv.absdiff(imR, imT_allineata)
-        
         # Calcolo degli errori per la visualizzazione e per i risultati finali
-        err_tx = tx - gt.loc[i, 'Tx']
-        err_ty = ty - gt.loc[i, 'Ty']
-        err_angolo = theta - gt.loc[i, 'AngleRad']
+        err_tx = tx - gt_test.loc[i, 'Tx']
+        err_ty = ty - gt_test.loc[i, 'Ty']
+        err_angolo = theta - gt_test.loc[i, 'AngleRad']
         
-        risultati.append([tx, ty, theta, err_tx, err_ty, err_angolo])
+        valori = {
+            'Tx_calc': tx,
+            'Ty_calc': ty,
+            'Angolo_calc': theta,
+            'Err_Tx': err_tx,
+            'Err_Ty': err_ty,
+            'Err_Angolo': err_angolo
+        }
+        risultati.append(valori)
 
-        # Visualizzazione semplice
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 4))
-        
-        ax1.imshow(cv.cvtColor(imR, cv.COLOR_BGR2RGB))
-        ax1.set_title("Statica")
-        
-        ax2.imshow(cv.cvtColor(imT_allineata, cv.COLOR_BGR2RGB))
-        ax2.set_title("Allineata")
-        
-        ax3.imshow(cv.cvtColor(diff, cv.COLOR_BGR2RGB))
-        ax3.set_title("Differenza")
-        
-        plt.suptitle(f"Test {i + 1} | Tx:{tx:.2f} Ty:{ty:.2f} Ang:{theta:.4f} | ErrTx:{err_tx:.2f} ErrTy:{err_ty:.2f} ErrAng:{err_angolo:.4f}")
-        plt.show()
+        # Visualizzazione con grafico MI incorporato
+        A1.plot_risultato(imR, imT_allineata, grafico_MI, i + 1, valori, METODO, BINS)
 
     # creo DataFrame finale direttamente con tutti i dati calcolati
-    colonne = ['Tx_calc', 'Ty_calc', 'Angolo_calc', 'Err_Tx', 'Err_Ty', 'Err_Angolo']
-    df = pd.DataFrame(risultati, columns=colonne)
+    df = pd.DataFrame(risultati)
 
     # Mostro i risultati per ogni coppia di immagini
     print(f"\n--- Risultati per METODO: {METODO}, BINS: {BINS} ---")
     print(df.round(4))
 
     # Calcolo RMSE e statistiche
-    statistiche = A1.calcola_statistiche(df, gt, METODO, BINS)
+    statistiche = A1.calcola_statistiche(df, gt_test, METODO, BINS)
 
     # Stampo riepilogo
     A1.stampa_riepilogo_finale([statistiche])
