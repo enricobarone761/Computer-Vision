@@ -116,7 +116,8 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
 
 def plot_risultato(imR, imT_allineata, index, is_test_plot=False):
 
-    fig, axes = plt.subplots(1, 4, figsize=(18, 4))
+    # Aumentiamo le dimensioni e riduciamo lo spazio tra i plot (wspace)
+    fig, axes = plt.subplots(1, 4, figsize=(22, 6), gridspec_kw={'wspace': 0.05})
     ax1, ax2, ax3, ax4 = axes
     
     ax1.imshow(cv.cvtColor(imR, cv.COLOR_BGR2RGB))
@@ -140,7 +141,9 @@ def plot_risultato(imR, imT_allineata, index, is_test_plot=False):
     else:
         ax4.axis('off')
         
-    fig.suptitle(f"Test {index}")
+    fig.suptitle(f"Test {index}", fontsize=14)
+    # Riduciamo i margini esterni per sfruttare meglio l'area
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.9, bottom=0.05)
     
     if is_test_plot == True:
         os.makedirs('Progetto_Esame/Assignment_1/output_test_plots', exist_ok=True)
