@@ -6,9 +6,8 @@ import os
 import scipy.optimize
 from sklearn.metrics import root_mean_squared_error, mean_squared_error
 
-PATH_VAL = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "val")
-PATH_TEST = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "test")
-GT_PATH = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "GT.csv")
+VAL_PATH = 'Progetto_Esame/Assignment_1/DATASET/val'
+GT_PATH = 'Progetto_Esame/Assignment_1/DATASET/GT.csv'
 
 METODO = ['Powell', 'Nelder-Mead', 'BFGS']
 BINS = [64,128,256]
@@ -174,7 +173,7 @@ def stampa_riepilogo_finale(riepilogo):
     print(df_finale.sort_values(by='Media_Err_XY', ascending=True).round(4))
 
 def main():
-    immagini = list(load_dataset(PATH_VAL))
+    immagini = list(load_dataset(VAL_PATH))
     gt = pd.read_csv(GT_PATH, sep=';')
     gt_val = gt[gt['Dataset'] == 'val']
     

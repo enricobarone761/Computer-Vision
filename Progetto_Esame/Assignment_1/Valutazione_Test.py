@@ -1,11 +1,10 @@
 import cv2 as cv
 import numpy as np
 import pandas as pd
-import os
 import Assignment1_Ufficiale as A1
 
-PATH_TEST = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "test")
-GT_PATH = os.path.join("Progetto_Esame", "Assignment_1", "DATASET", "GT.csv")
+TEST_PATH = 'Progetto_Esame/Assignment_1/DATASET/test'
+GT_PATH = 'Progetto_Esame/Assignment_1/DATASET/GT.csv'
 
 #PARAMETRI SCELTI CON IL VALIDATION SET
 METODO = 'Nelder-Mead'  
@@ -14,7 +13,7 @@ BINS = 64
 
 def main():
     
-    immagini = list(A1.load_dataset(PATH_TEST, filtri=False))
+    immagini = list(A1.load_dataset(TEST_PATH, filtri=False))
     gt_test = pd.read_csv(GT_PATH, sep=';')
     gt_test = gt_test[gt_test['Dataset'] == 'test'].reset_index(drop=True)
 
