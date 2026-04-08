@@ -116,19 +116,23 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
 
     return res.x, grafico_MI
 
-def plot_risultato(imR, imT_allineata, grafico_MI, index, stats, metodo, bins):
+def plot_risultato(imR, imT_allineata, grafico_MI, index, stats, metodo, bins, is_test_plot=False):
 
-    fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(24, 4))
+    fig, axes = plt.subplots(1, 4, figsize=(14, 4), constrained_layout=True)
+    ax1, ax2, ax3, ax4 = axes
     
     ax1.imshow(cv.cvtColor(imR, cv.COLOR_BGR2RGB))
     ax1.set_title("Statica")
+    ax1.axis('off')
     
     ax2.imshow(cv.cvtColor(imT_allineata, cv.COLOR_BGR2RGB))
     ax2.set_title("Allineata")
+    ax2.axis('off')
     
     diff = cv.absdiff(imR, imT_allineata)
     ax3.imshow(cv.cvtColor(diff, cv.COLOR_BGR2RGB))
     ax3.set_title("Differenza")
+    ax3.axis('off')
     
     if len(grafico_MI) > 0:
         ax4.plot(range(1, len(grafico_MI) + 1), grafico_MI, marker='o', linestyle='-', color='b')
@@ -139,8 +143,17 @@ def plot_risultato(imR, imT_allineata, grafico_MI, index, stats, metodo, bins):
     else:
         ax4.set_visible(False)
         
-    plt.suptitle(f"Test {index} | Tx:{stats['Tx_calc']:.2f} Ty:{stats['Ty_calc']:.2f} Ang:{stats['Angolo_calc']:.4f} | ErrTx:{stats['Err_Tx']:.2f} ErrTy:{stats['Err_Ty']:.2f} ErrAng:{stats['Err_Angolo']:.4f}")
-    plt.show()
+    fig.suptitle(f"Test {index} | Tx:{stats['Tx_calc']:.2f} Ty:{stats['Ty_calc']:.2f} Ang:{stats['Angolo_calc']:.4f} | ErrTx:{stats['Err_Tx']:.2f} ErrTy:{stats['Err_Ty']:.2f} ErrAng:{stats['Err_Angolo']:.4f}")
+    
+    if is_test_plot == True:
+        os.makedirs('Progetto_Esame/Assignment_1/output_test_plots', exist_ok=True)
+        fig.savefig(f'Progetto_Esame/Assignment_1/output_test_plots/risultato_test_{index}')
+        plt.close(fig)
+    else:
+        os.makedirs('Progetto_Esame/Assignment_1/output_validation_plots', exist_ok=True)
+        fig.savefig(f'Progetto_Esame/Assignment_1/output_validation_plots/risultato_val_{index}')
+        plt.close(fig)
+
 
 def calcola_statistiche(df, gt, metodo, bins):
     rmse_angolo = root_mean_squared_error(df['Angolo_calc'], gt['AngleRad'])

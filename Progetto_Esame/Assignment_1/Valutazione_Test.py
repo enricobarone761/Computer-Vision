@@ -53,7 +53,7 @@ def main():
         risultati.append(valori)
 
         # Visualizzazione con grafico MI incorporato
-        A1.plot_risultato(imR, imT_allineata, grafico_MI, i + 1, valori, METODO, BINS)
+        A1.plot_risultato(imR, imT_allineata, grafico_MI, i + 1, valori, METODO, BINS, is_test_plot=True)
 
     # creo DataFrame finale direttamente con tutti i dati calcolati
     df = pd.DataFrame(risultati)
