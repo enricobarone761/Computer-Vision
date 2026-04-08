@@ -38,31 +38,31 @@ def load_dataset(PATH, filtri=True):
 
                 yield (imR, imT)
 
-def mutua_informazione(img_ref, img_mov, bins):
+def mutua_informazione(im_rif, im_mov, bins):
     # Istogramma congiunto 2D
-    hist_2d, _, _ = np.histogram2d(
-        img_ref.ravel(), img_mov.ravel(),
+    hist2d, _, _ = np.histogram2d(
+        im_rif.ravel(), im_mov.ravel(),
         bins=bins, range=[[0, 255], [0, 255]]
     )
     # Distribuzione di probabilità congiunta (evita log(0))
-    p_joint = hist_2d / hist_2d.sum()
-    p_joint = p_joint[p_joint > 0]
+    p_con = hist2d / hist2d.sum()
+    p_con = p_con[p_con > 0]
 
     # Distribuzioni marginali
-    p_ref = hist_2d.sum(axis=1)
-    p_ref = p_ref / p_ref.sum()
-    p_ref = p_ref[p_ref > 0]
+    p_rif = hist2d.sum(axis=1)
+    p_rif = p_rif / p_rif.sum()
+    p_rif = p_rif[p_rif > 0]
 
-    p_mov = hist_2d.sum(axis=0)
+    p_mov = hist2d.sum(axis=0)
     p_mov = p_mov / p_mov.sum()
     p_mov = p_mov[p_mov > 0]
 
     # Entropie
-    H_ref = -np.sum(p_ref * np.log2(p_ref))
-    H_mov = -np.sum(p_mov * np.log2(p_mov))
-    H_joint = -np.sum(p_joint * np.log2(p_joint))
+    Entr_rif = -np.sum(p_rif * np.log2(p_rif))
+    Entr_mov = -np.sum(p_mov * np.log2(p_mov))
+    Entr_con = -np.sum(p_con * np.log2(p_con))
 
-    return H_ref + H_mov - H_joint
+    return Entr_rif + Entr_mov - Entr_con
 
 def funzione_obiettivo(params, imR_img, imT_img, bins):
 
