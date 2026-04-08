@@ -178,14 +178,13 @@ def main():
 
     for b in BINS:
         for m in METODO:
-            # 1. Trovo parametri per ogni immagine
+
             risultati = []
-            i=1
+            i=1 #variabile che mi serve per numerare e salvare correttamente le immagini su disco
             for imR, imT in immagini:
                 tx, ty, angle = massimizza_mutua_informazione(imR, imT, b, m)
                 risultati.append([tx, ty, angle])
 
-                # Visualizzazione
                 plot_risultato(imR, imT, f'{m}_{b}_c{i}')
                 i+=1
 
