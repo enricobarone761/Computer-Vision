@@ -109,7 +109,7 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
 
     return res.x
 
-def plot_risultato(imR, imT_allineata, index, stats, metodo, bins, is_test_plot=False):
+def plot_risultato(imR, imT_allineata, index, is_test_plot=False):
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 4), constrained_layout=True)
     ax1, ax2, ax3 = axes
@@ -127,7 +127,7 @@ def plot_risultato(imR, imT_allineata, index, stats, metodo, bins, is_test_plot=
     ax3.set_title("Differenza")
     ax3.axis('off')
         
-    fig.suptitle(f"Test {index} | Tx:{stats['Tx_calc']:.2f} Ty:{stats['Ty_calc']:.2f} Ang:{stats['Angolo_calc']:.4f} | ErrTx:{stats['Err_Tx']:.2f} ErrTy:{stats['Err_Ty']:.2f} ErrAng:{stats['Err_Angolo']:.4f}")
+    fig.suptitle(f"Test {index}")
     
     if is_test_plot == True:
         os.makedirs('Progetto_Esame/Assignment_1/output_test_plots', exist_ok=True)
@@ -180,9 +180,14 @@ def main():
         for m in METODO:
             # 1. Trovo parametri per ogni immagine
             risultati = []
+            i=1
             for imR, imT in immagini:
                 tx, ty, angle = massimizza_mutua_informazione(imR, imT, b, m)
                 risultati.append([tx, ty, angle])
+
+                # Visualizzazione
+                plot_risultato(imR, imT, f'{m}_{b}_c{i}')
+                i+=1
 
             # 2. Creo il DataFrame con i parametri trovati
             df = pd.DataFrame(risultati, columns=['Tx_calc', 'Ty_calc', 'Angolo_calc'])

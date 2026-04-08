@@ -53,7 +53,7 @@ def main():
         risultati.append(valori)
 
         # Visualizzazione
-        A1.plot_risultato(imR, imT_allineata, i + 1, valori, METODO, BINS, is_test_plot=True)
+        A1.plot_risultato(imR, imT_allineata, f'c{i+1}', is_test_plot=True)
 
     # creo DataFrame finale direttamente con tutti i dati calcolati
     df = pd.DataFrame(risultati)
