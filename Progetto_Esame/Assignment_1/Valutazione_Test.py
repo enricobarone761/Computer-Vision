@@ -27,7 +27,7 @@ def main():
         imT_mod = cv.GaussianBlur(cv.cvtColor(imT, cv.COLOR_BGR2GRAY), (5, 5), 0)
 
         # stimo i parametri con bin e metodo deciso con il validation set
-        (tx, ty, theta), grafico_MI = A1.massimizza_mutua_informazione(imR_mod, imT_mod, BINS, METODO)
+        tx, ty, theta = A1.massimizza_mutua_informazione(imR_mod, imT_mod, BINS, METODO)
         
         h , w = imT_mod.shape
 
@@ -52,8 +52,8 @@ def main():
         }
         risultati.append(valori)
 
-        # Visualizzazione con grafico MI incorporato
-        A1.plot_risultato(imR, imT_allineata, grafico_MI, i + 1, valori, METODO, BINS, is_test_plot=True)
+        # Visualizzazione
+        A1.plot_risultato(imR, imT_allineata, i + 1, valori, METODO, BINS, is_test_plot=True)
 
     # creo DataFrame finale direttamente con tutti i dati calcolati
     df = pd.DataFrame(risultati)

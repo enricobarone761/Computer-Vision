@@ -99,27 +99,20 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
     if metodo == 'BFGS':
         opts = {'eps': [1, 1, 0.01]}
 
-    grafico_MI = []
-
-    def callback_ottimizzazione(x_k):
-        valore_mi = -funzione_obiettivo(x_k, imR_mod, imT_mod, bins)
-        grafico_MI.append(valore_mi)
-
     res = scipy.optimize.minimize(
         funzione_obiettivo,
         initial_guess,
         args=(imR_mod, imT_mod, bins),
         method=metodo,
-        options=opts,
-        callback=callback_ottimizzazione #Necessaria per stampare il grafico dell'andamento della MI
+        options=opts
     )
 
-    return res.x, grafico_MI
+    return res.x
 
-def plot_risultato(imR, imT_allineata, grafico_MI, index, stats, metodo, bins, is_test_plot=False):
+def plot_risultato(imR, imT_allineata, index, stats, metodo, bins, is_test_plot=False):
 
-    fig, axes = plt.subplots(1, 4, figsize=(14, 4), constrained_layout=True)
-    ax1, ax2, ax3, ax4 = axes
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4), constrained_layout=True)
+    ax1, ax2, ax3 = axes
     
     ax1.imshow(cv.cvtColor(imR, cv.COLOR_BGR2RGB))
     ax1.set_title("Statica")
@@ -133,15 +126,6 @@ def plot_risultato(imR, imT_allineata, grafico_MI, index, stats, metodo, bins, i
     ax3.imshow(cv.cvtColor(diff, cv.COLOR_BGR2RGB))
     ax3.set_title("Differenza")
     ax3.axis('off')
-    
-    if len(grafico_MI) > 0:
-        ax4.plot(range(1, len(grafico_MI) + 1), grafico_MI, marker='o', linestyle='-', color='b')
-        ax4.set_title(f'MI ({metodo}, Bins:{bins})')
-        ax4.set_xlabel('Iterazioni')
-        ax4.set_ylabel('Valore MI')
-        ax4.grid(True)
-    else:
-        ax4.set_visible(False)
         
     fig.suptitle(f"Test {index} | Tx:{stats['Tx_calc']:.2f} Ty:{stats['Ty_calc']:.2f} Ang:{stats['Angolo_calc']:.4f} | ErrTx:{stats['Err_Tx']:.2f} ErrTy:{stats['Err_Ty']:.2f} ErrAng:{stats['Err_Angolo']:.4f}")
     
@@ -197,7 +181,7 @@ def main():
             # 1. Trovo parametri per ogni immagine
             risultati = []
             for imR, imT in immagini:
-                (tx, ty, angle), grafico_MI = massimizza_mutua_informazione(imR, imT, b, m)
+                tx, ty, angle = massimizza_mutua_informazione(imR, imT, b, m)
                 risultati.append([tx, ty, angle])
 
             # 2. Creo il DataFrame con i parametri trovati
