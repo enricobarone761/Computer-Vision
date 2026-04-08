@@ -85,7 +85,7 @@ def funzione_obiettivo(params, imR_img, imT_img, bins):
     return -mi
 
 def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
-    storico_mi.clear()
+    storico_mi.clear() #necessario altrimenti il grafico conterrebbe i valori di MI di tutte le iterazioni di tutti i metodi
     initial_guess = np.array([0, 0, 0])
 
     opts = {}
@@ -116,7 +116,7 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
 
 def plot_risultato(imR, imT_allineata, index, is_test_plot=False):
 
-    fig, axes = plt.subplots(1, 4, figsize=(18, 4), constrained_layout=True)
+    fig, axes = plt.subplots(1, 4, figsize=(18, 4))
     ax1, ax2, ax3, ax4 = axes
     
     ax1.imshow(cv.cvtColor(imR, cv.COLOR_BGR2RGB))
