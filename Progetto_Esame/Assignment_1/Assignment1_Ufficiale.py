@@ -12,6 +12,8 @@ GT_PATH = 'Progetto_Esame/Assignment_1/DATASET/GT.csv'
 METODO = ['Powell', 'Nelder-Mead', 'BFGS']
 BINS = [64,128,256]
 
+storico_mi = []
+
 def load_dataset(PATH, filtri=True):
     for subdir in sorted(os.listdir(PATH)):
         subdir_path = os.path.join(PATH, subdir)
@@ -78,9 +80,12 @@ def funzione_obiettivo(params, imR_img, imT_img, bins):
     imT_warped = cv.warpAffine(imT_img, T, (w, h), flags=cv.INTER_LINEAR)
 
     # We minimize negative mutual information
-    return -mutua_informazione(imR_img, imT_warped, bins)
+    mi = mutua_informazione(imR_img, imT_warped, bins)
+    storico_mi.append(mi)
+    return -mi
 
 def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
+    storico_mi.clear()
     initial_guess = np.array([0, 0, 0])
 
     opts = {}
@@ -111,8 +116,8 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
 
 def plot_risultato(imR, imT_allineata, index, is_test_plot=False):
 
-    fig, axes = plt.subplots(1, 3, figsize=(14, 4), constrained_layout=True)
-    ax1, ax2, ax3 = axes
+    fig, axes = plt.subplots(1, 4, figsize=(18, 4), constrained_layout=True)
+    ax1, ax2, ax3, ax4 = axes
     
     ax1.imshow(cv.cvtColor(imR, cv.COLOR_BGR2RGB))
     ax1.set_title("Statica")
@@ -126,16 +131,24 @@ def plot_risultato(imR, imT_allineata, index, is_test_plot=False):
     ax3.imshow(cv.cvtColor(diff, cv.COLOR_BGR2RGB))
     ax3.set_title("Differenza")
     ax3.axis('off')
+
+    if storico_mi:
+        ax4.plot(storico_mi)
+        ax4.set_title("Andamento MI")
+        ax4.set_xlabel("Iterazione")
+        ax4.set_ylabel("MI")
+    else:
+        ax4.axis('off')
         
     fig.suptitle(f"Test {index}")
     
     if is_test_plot == True:
         os.makedirs('Progetto_Esame/Assignment_1/output_test_plots', exist_ok=True)
-        fig.savefig(f'Progetto_Esame/Assignment_1/output_test_plots/risultato_test_{index}')
+        fig.savefig(f'Progetto_Esame/Assignment_1/output_test_plots/risultato_test_{index}', dpi=300)
         plt.close(fig)
     else:
         os.makedirs('Progetto_Esame/Assignment_1/output_validation_plots', exist_ok=True)
-        fig.savefig(f'Progetto_Esame/Assignment_1/output_validation_plots/risultato_val_{index}')
+        fig.savefig(f'Progetto_Esame/Assignment_1/output_validation_plots/risultato_val_{index}', dpi=300)
         plt.close(fig)
 
 
