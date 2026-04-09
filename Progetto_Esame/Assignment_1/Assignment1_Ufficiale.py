@@ -15,12 +15,12 @@ BINS = [64,128,256]
 storico_mi = []
 
 def load_dataset(PATH, filtri=True):
-    for subdir in sorted(os.listdir(PATH)):
+    for subdir in sorted(os.listdir(PATH)):  #sorted() garantisce che le immagini siano sempre nello stesso ordine del GT
         subdir_path = os.path.join(PATH, subdir)
         if os.path.isdir(subdir_path):
             files = os.listdir(subdir_path)
             
-            # Identify R and T files
+            #identifico i file della Reference (R) e della Target (T) dai nomi
             file_R = next((f for f in files if '_R.png' in f), None)
             file_T = next((f for f in files if '_T.png' in f), None)
             
@@ -28,7 +28,6 @@ def load_dataset(PATH, filtri=True):
                 imR = cv.imread(os.path.join(subdir_path, file_R))
                 imT = cv.imread(os.path.join(subdir_path, file_T))
 
-                # Se il flag è True, applichiamo i filtri
                 if filtri:
                     k = 5
                     imR = cv.cvtColor(imR, cv.COLOR_BGR2GRAY)
@@ -39,16 +38,16 @@ def load_dataset(PATH, filtri=True):
                 yield (imR, imT)
 
 def mutua_informazione(im_rif, im_mov, bins):
-    # Istogramma congiunto 2D
+    #.ravel() appiattisce le immagini in vettori 1D per poterle dare all'istogramma 2D
     hist2d, _, _ = np.histogram2d(
         im_rif.ravel(), im_mov.ravel(),
         bins=bins, range=[[0, 255], [0, 255]]
     )
-    # Distribuzione di probabilità congiunta (evita log(0))
+    #normalizzazione e si filtrano i valori nulli per evitare log(0)
     p_con = hist2d / hist2d.sum()
     p_con = p_con[p_con > 0]
 
-    # Distribuzioni marginali
+    #somma per riga e per colonna dell'istogramma congiunto
     p_rif = hist2d.sum(axis=1)
     p_rif = p_rif / p_rif.sum()
     p_rif = p_rif[p_rif > 0]
@@ -57,11 +56,11 @@ def mutua_informazione(im_rif, im_mov, bins):
     p_mov = p_mov / p_mov.sum()
     p_mov = p_mov[p_mov > 0]
 
-    # Entropie
     Entr_rif = -np.sum(p_rif * np.log2(p_rif))
     Entr_mov = -np.sum(p_mov * np.log2(p_mov))
     Entr_con = -np.sum(p_con * np.log2(p_con))
 
+    # MI = H(R) + H(T) - H(R,T)
     return Entr_rif + Entr_mov - Entr_con
 
 def funzione_obiettivo(params, imR_img, imT_img, bins):
@@ -73,15 +72,16 @@ def funzione_obiettivo(params, imR_img, imT_img, bins):
 
     h, w = imT_img.shape
     
+    #matrice di rototraslazione per warpAffine()
     T = np.array([[np.cos(theta), -np.sin(theta), tx], 
                   [np.sin(theta),  np.cos(theta), ty]],
                   dtype=np.float32)
 
     imT_warped = cv.warpAffine(imT_img, T, (w, h), flags=cv.INTER_LINEAR)
 
-    # We minimize negative mutual information
     mi = mutua_informazione(imR_img, imT_warped, bins)
     storico_mi.append(mi)
+    #si restusce il negativo perché .minimize() minimizza
     return -mi
 
 def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
@@ -90,7 +90,7 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
 
     opts = {}
     if metodo == 'Nelder-Mead':
-        # Con x0 = [0,0,0] il simplesso di default e' troppo piccolo.
+        #con x0 = [0,0,0] il simplesso di default è troppo piccolo per esplorare bene lo spazio
         simplesso_iniziale=np.array([[0, 0, 0],
                                      [1, 0, 0],
                                      [0, 1, 0],
@@ -102,6 +102,7 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
         }
 
     if metodo == 'BFGS':
+        # eps definisce il passo per la stima numerica del gradiente diverso per traslazione e rotazione
         opts = {'eps': [1, 1, 0.01]}
 
     res = scipy.optimize.minimize(
@@ -116,7 +117,6 @@ def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
 
 def plot_risultato(imR, imT_allineata, index, is_test_plot=False):
 
-    # Aumentiamo le dimensioni e riduciamo lo spazio tra i plot (wspace)
     fig, axes = plt.subplots(1, 4, figsize=(22, 6), gridspec_kw={'wspace': 0.05})
     ax1, ax2, ax3, ax4 = axes
     
@@ -128,6 +128,7 @@ def plot_risultato(imR, imT_allineata, index, is_test_plot=False):
     ax2.set_title("Allineata")
     ax2.axis('off')
     
+    # Differenza pixel per pixel -> più scuro = meno errore
     diff = cv.absdiff(imR, imT_allineata)
     ax3.imshow(cv.cvtColor(diff, cv.COLOR_BGR2RGB))
     ax3.set_title("Differenza")
@@ -142,7 +143,6 @@ def plot_risultato(imR, imT_allineata, index, is_test_plot=False):
         ax4.axis('off')
         
     fig.suptitle(f"Test {index}", fontsize=14)
-    # Riduciamo i margini esterni per sfruttare meglio l'area
     fig.subplots_adjust(left=0.01, right=0.99, top=0.9, bottom=0.05)
     
     if is_test_plot == True:
@@ -156,11 +156,12 @@ def plot_risultato(imR, imT_allineata, index, is_test_plot=False):
 
 
 def calcola_statistiche(df, gt, metodo, bins):
+
     rmse_angolo = root_mean_squared_error(df['Angolo_calc'], gt['AngleRad'])
     rmse_tx = root_mean_squared_error(df['Tx_calc'], gt['Tx'])
     rmse_ty = root_mean_squared_error(df['Ty_calc'], gt['Ty'])
 
-    media_errore_traslazione = df[['Err_Tx', 'Err_Ty']].abs().mean().mean()
+    media_errore_traslazione = df[['Err_Tx', 'Err_Ty']].abs().mean().mean()  #media su Tx e Ty poi media tra le due
     media_errore_angolo = df['Err_Angolo'].abs().mean()
     deviazione_std_errore_traslazione = df[['Err_Tx', 'Err_Ty']].std().mean()
     deviazione_std_errore_angolo = df['Err_Angolo'].std()
@@ -204,23 +205,19 @@ def main():
                 plot_risultato(imR, imT, f'{m}_{b}_c{i}')
                 i+=1
 
-            # 2. Creo il DataFrame con i parametri trovati
             df = pd.DataFrame(risultati, columns=['Tx_calc', 'Ty_calc', 'Angolo_calc'])
 
-            # 3. Calcolo gli errori per ogni parametro
+            # Errore = valore stimato - valore ground truth
             df['Err_Tx'] = df['Tx_calc'] - gt_val['Tx']
             df['Err_Ty'] = df['Ty_calc'] - gt_val['Ty']
             df['Err_Angolo'] = df['Angolo_calc'] - gt_val['AngleRad']
             
-            # Mostro i risultati per ogni coppia di immagini (parametri calcolati e errori)
             print(f"\n--- Risultati per METODO: {m}, BINS: {b} ---")
             print(df)
 
-            # 5. Calcolo MSE globali e statistiche
             statistiche = calcola_statistiche(df, gt_val, m, b)
             riepilogo.append(statistiche)
 
-    # Stampo la classifica finale
     stampa_riepilogo_finale(riepilogo)
 
 if __name__ == "__main__":
