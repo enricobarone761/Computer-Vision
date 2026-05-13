@@ -1,97 +1,224 @@
 import cv2 as cv
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import os
-import scipy
-import tabulate as tb
+import scipy.optimize
+from sklearn.metrics import root_mean_squared_error, mean_squared_error
 
-PATH = r"Progetto_Esame\Assignment_1\DATASET\val"
+VAL_PATH = 'Progetto_Esame/Assignment_1/DATASET/val'
+GT_PATH = 'Progetto_Esame/Assignment_1/DATASET/GT.csv'
+
 METODO = ['Powell', 'Nelder-Mead', 'BFGS']
 BINS = [64,128,256]
 
-def val_dataset(PATH):
-    for subdir in sorted(os.listdir(PATH)):
+storico_mi = []
+
+def load_dataset(PATH, filtri=True):
+    for subdir in sorted(os.listdir(PATH)):  #sorted() garantisce che le immagini siano sempre nello stesso ordine del GT
         subdir_path = os.path.join(PATH, subdir)
         if os.path.isdir(subdir_path):
             files = os.listdir(subdir_path)
             
-            # Identify R and T files
+            #identifico i file della Reference (R) e della Target (T) dai nomi
             file_R = next((f for f in files if '_R.png' in f), None)
             file_T = next((f for f in files if '_T.png' in f), None)
             
             if file_R and file_T:
-                imR = cv.imread(os.path.join(subdir_path, file_R), flags=cv.IMREAD_GRAYSCALE)
-                imT = cv.imread(os.path.join(subdir_path, file_T), flags=cv.IMREAD_GRAYSCALE)
+                imR = cv.imread(os.path.join(subdir_path, file_R))
+                imT = cv.imread(os.path.join(subdir_path, file_T))
 
-                # Yield the 2D images directly
+                if filtri:
+                    k = 5
+                    imR = cv.cvtColor(imR, cv.COLOR_BGR2GRAY)
+                    imR = cv.GaussianBlur(imR, (k, k), 0)
+                    imT = cv.cvtColor(imT, cv.COLOR_BGR2GRAY)
+                    imT = cv.GaussianBlur(imT, (k, k), 0)
+
                 yield (imR, imT)
 
-def massimizza_mutua_informazione(imR_img, imT_img, bins, metodo):
+def mutua_informazione(im_rif, im_mov, bins):
+    #.ravel() appiattisce le immagini in vettori 1D per poterle dare all'istogramma 2D
+    hist2d, _, _ = np.histogram2d(
+        im_rif.ravel(), im_mov.ravel(),
+        bins=bins, range=[[0, 255], [0, 255]]
+    )
+    #normalizzazione e si filtrano i valori nulli per evitare log(0)
+    p_con = hist2d / hist2d.sum()
+    p_con = p_con[p_con > 0]
 
-    def entropia(img_flat):
-        hist_s, _ = np.histogram(img_flat, bins, range=(0, 255))
-        p = hist_s / hist_s.sum()  # probabilità reali, somma = 1
-        return -np.sum(p[p > 0] * np.log2(p[p > 0]))
+    #somma per riga e per colonna dell'istogramma congiunto
+    p_rif = hist2d.sum(axis=1)
+    p_rif = p_rif / p_rif.sum()
+    p_rif = p_rif[p_rif > 0]
 
-    def entropia_congiunta(img1_flat, img2_flat):
-        hist, _, _ = np.histogram2d(img1_flat, img2_flat, bins, range=[[0,255],[0,255]])
-        p = hist / hist.sum()      # stessa cosa in 2D
-        return -np.sum(p[p > 0] * np.log2(p[p > 0]))
+    p_mov = hist2d.sum(axis=0)
+    p_mov = p_mov / p_mov.sum()
+    p_mov = p_mov[p_mov > 0]
 
-    def mutua_informazione(img1_flat, img2_flat):
-        return entropia(img1_flat) + entropia(img2_flat) - entropia_congiunta(img1_flat, img2_flat)
+    Entr_rif = -np.sum(p_rif * np.log2(p_rif))
+    Entr_mov = -np.sum(p_mov * np.log2(p_mov))
+    Entr_con = -np.sum(p_con * np.log2(p_con))
 
+    # MI = H(R) + H(T) - H(R,T)
+    return Entr_rif + Entr_mov - Entr_con
 
-    rows, cols = imT_img.shape
-    center = (cols // 2, rows // 2)
+def funzione_obiettivo(params, imR_img, imT_img, bins):
 
-    def objective(params):
-        tx, ty, angle = params
+    tx, ty, theta = params
 
-        M = cv.getRotationMatrix2D(center, angle, 1.0)
-        M[0, 2] += tx
-        M[1, 2] += ty
-        
+    # cv2.getRotationMatrix2D vuole l'angolo in gradi
+    #theta_deg = np.degrees(theta)
 
-        imT_warped = cv.warpAffine(imT_img, M, (cols, rows), flags=cv.INTER_LINEAR)
-        
-        # We minimize negative mutual information
-        return -mutua_informazione(imR_img.flatten(), imT_warped.flatten())
-
-
-    initial_guess = np.array([0.0, 0.0, 0.0])
+    h, w = imT_img.shape
     
-    opts = {}
-    if metodo == 'BFGS':
-        # BFGS usa differenze finite per stimare il gradiente. Il default (~1e-8) è 
-        # troppo piccolo per alterare i bin dell'istogramma. Forziamo uno step di 1.0.
-        opts = {'eps': 1.0} 
-    elif metodo == 'Nelder-Mead':
-        # Nelder-Mead con guess iniziali a 0 crea un simplesso esplorativo minuscolo (0.00025).
-        # Costruiamo un simplesso iniziale manuale con scostamenti di 2.0 pixel/gradi.
-        step = 2.0
-        opts = {'initial_simplex': np.array([
-            [0.0, 0.0, 0.0],
-            [step, 0.0, 0.0],
-            [0.0, step, 0.0],
-            [0.0, 0.0, step]
-        ])}
+    #matrice di rototraslazione per warpAffine()
+    T = np.array([[np.cos(theta), -np.sin(theta), tx], 
+                  [np.sin(theta),  np.cos(theta), ty]],
+                  dtype=np.float32)
 
-    res = scipy.optimize.minimize(objective, initial_guess, method=metodo, options=opts)
+    imT_warped = cv.warpAffine(imT_img, T, (w, h), flags=cv.INTER_LINEAR)
+
+    mi = mutua_informazione(imR_img, imT_warped, bins)
+    storico_mi.append(mi)
+    #si restusce il negativo perché .minimize() minimizza
+    return -mi
+
+def massimizza_mutua_informazione(imR_mod, imT_mod, bins, metodo):
+    storico_mi.clear() #necessario altrimenti il grafico conterrebbe i valori di MI di tutte le iterazioni di tutti i metodi
+    initial_guess = np.array([0, 0, 0])
+
+    opts = {}
+    if metodo == 'Nelder-Mead':
+        #con x0 = [0,0,0] il simplesso di default è troppo piccolo per esplorare bene lo spazio
+        simplesso_iniziale=np.array([[0, 0, 0],
+                                     [1, 0, 0],
+                                     [0, 1, 0],
+                                     [0, 0, 0.01]],
+                                     dtype=np.float32)
+
+        opts = {
+            'initial_simplex': simplesso_iniziale,
+        }
+
+    if metodo == 'BFGS':
+        # eps definisce il passo per la stima numerica del gradiente diverso per traslazione e rotazione
+        opts = {'eps': [1, 1, 0.01]}
+
+    res = scipy.optimize.minimize(
+        funzione_obiettivo,
+        initial_guess,
+        args=(imR_mod, imT_mod, bins),
+        method=metodo,
+        options=opts
+    )
+
     return res.x
 
-for b in BINS:
-    for m in METODO:
-        results = []
-        for imR, imT in val_dataset(PATH):
-            params = massimizza_mutua_informazione(imR, imT, b, m)
-            params[2] = (params[2] * np.pi) / 180
-            results.append(params)
-        
-        print(f"\nRisultati per Bins={b}, Metodo={m}:")
-        print( tb.tabulate( np.array(results) , tablefmt='rounded_grid' ) )
+def plot_risultato(imR, imT_allineata, index, is_test_plot=False):
 
-# # Plot the histogram
-# hist_2d, _, _ = np.histogram2d(imR_flat, imT_flat, BINS=128)
-# plt.imshow(hist_2d, origin='lower', cmap='hot')
-# plt.show()
+    fig, axes = plt.subplots(1, 4, figsize=(22, 6), gridspec_kw={'wspace': 0.05})
+    ax1, ax2, ax3, ax4 = axes
+    
+    ax1.imshow(cv.cvtColor(imR, cv.COLOR_BGR2RGB))
+    ax1.set_title("Statica")
+    ax1.axis('off')
+    
+    ax2.imshow(cv.cvtColor(imT_allineata, cv.COLOR_BGR2RGB))
+    ax2.set_title("Allineata")
+    ax2.axis('off')
+    
+    # Differenza pixel per pixel -> più scuro = meno errore
+    diff = cv.absdiff(imR, imT_allineata)
+    ax3.imshow(cv.cvtColor(diff, cv.COLOR_BGR2RGB))
+    ax3.set_title("Differenza")
+    ax3.axis('off')
+
+    if storico_mi:
+        ax4.plot(storico_mi)
+        ax4.set_title("Andamento MI")
+        ax4.set_xlabel("Iterazione")
+        ax4.set_ylabel("MI")
+    else:
+        ax4.axis('off')
+        
+    fig.suptitle(f"Test {index}", fontsize=14)
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.9, bottom=0.05)
+    
+    if is_test_plot == True:
+        os.makedirs('Progetto_Esame/Assignment_1/output_test_plots', exist_ok=True)
+        fig.savefig(f'Progetto_Esame/Assignment_1/output_test_plots/risultato_test_{index}', dpi=300)
+        plt.close(fig)
+    else:
+        os.makedirs('Progetto_Esame/Assignment_1/output_validation_plots', exist_ok=True)
+        fig.savefig(f'Progetto_Esame/Assignment_1/output_validation_plots/risultato_val_{index}', dpi=300)
+        plt.close(fig)
+
+
+def calcola_statistiche(df, gt, metodo, bins):
+
+    rmse_angolo = root_mean_squared_error(df['Angolo_calc'], gt['AngleRad'])
+    rmse_tx = root_mean_squared_error(df['Tx_calc'], gt['Tx'])
+    rmse_ty = root_mean_squared_error(df['Ty_calc'], gt['Ty'])
+
+    media_errore_traslazione = df[['Err_Tx', 'Err_Ty']].abs().mean().mean()  #media su Tx e Ty poi media tra le due
+    media_errore_angolo = df['Err_Angolo'].abs().mean()
+    deviazione_std_errore_traslazione = df[['Err_Tx', 'Err_Ty']].std().mean()
+    deviazione_std_errore_angolo = df['Err_Angolo'].std()
+
+    return [
+        metodo,
+        bins,
+        rmse_tx,
+        rmse_ty,
+        rmse_angolo,
+        media_errore_traslazione,
+        media_errore_angolo,
+        deviazione_std_errore_traslazione,
+        deviazione_std_errore_angolo
+    ]
+
+def stampa_riepilogo_finale(riepilogo):
+    colonne = ['Metodo', 'Bins', 'RMSE_Tx', 'RMSE_Ty', 'RMSE_Angolo', 'Media_Err_XY', 'Media_Err_Angolo', 'STD_Err_XY', 'STD_Err_Angolo']
+    df_finale = pd.DataFrame(riepilogo, columns=colonne)
+    print("\n" + "="*80)
+    print("RIEPILOGO FINALE (ORDINATO PER MEDIA)")
+    print("="*80)
+    print(df_finale.sort_values(by='Media_Err_XY', ascending=True).round(4))
+
+def main():
+    immagini = list(load_dataset(VAL_PATH))
+    gt = pd.read_csv(GT_PATH, sep=';')
+    gt_val = gt[gt['Dataset'] == 'val']
+    
+    riepilogo = []
+
+    for b in BINS:
+        for m in METODO:
+
+            risultati = []
+            i=1 #variabile che mi serve per numerare e salvare correttamente le immagini su disco
+            for imR, imT in immagini:
+                tx, ty, angle = massimizza_mutua_informazione(imR, imT, b, m)
+                risultati.append([tx, ty, angle])
+
+                plot_risultato(imR, imT, f'{m}_{b}_c{i}')
+                i+=1
+
+            df = pd.DataFrame(risultati, columns=['Tx_calc', 'Ty_calc', 'Angolo_calc'])
+
+            # Errore = valore stimato - valore ground truth
+            df['Err_Tx'] = df['Tx_calc'] - gt_val['Tx']
+            df['Err_Ty'] = df['Ty_calc'] - gt_val['Ty']
+            df['Err_Angolo'] = df['Angolo_calc'] - gt_val['AngleRad']
+            
+            print(f"\n--- Risultati per METODO: {m}, BINS: {b} ---")
+            print(df)
+
+            statistiche = calcola_statistiche(df, gt_val, m, b)
+            riepilogo.append(statistiche)
+
+    stampa_riepilogo_finale(riepilogo)
+
+if __name__ == "__main__":
+    main()

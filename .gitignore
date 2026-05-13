@@ -2,3 +2,6 @@
 *.mp4
 .DS_Store
 **/.DS_Store
+**/*.pyc
+output_test_plots
+output_validation_plots
