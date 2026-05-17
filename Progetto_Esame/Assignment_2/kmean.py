@@ -11,7 +11,7 @@ for K in K_VALUES:
     kmeans = KMeans(n_clusters=K, random_state=42, verbose=1)
     kmeans.fit(descriptors)
     print(f"  {K}-means addestrato con inertia: {kmeans.inertia_:.2f}")
-    
+
     with open(f'vocab_k{K}.pkl', 'wb') as f:
         pickle.dump(kmeans, f)
     print(f"  Vocabolario K={K} salvato in vocab_k{K}.pkl")
