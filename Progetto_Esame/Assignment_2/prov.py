@@ -19,38 +19,49 @@ def leggi_foto(cartella):
                 yield (classe, img)
 
 
-def genera_istogrammi(PATH_VOCABOLARIO):
-
+def estrai_descrittori(cartella=PATH_DATASET):
     sift = cv.SIFT_create()
+    lista_descrittori = []
+
+    for classe, img in leggi_foto(cartella):
+        print(f"Processing image of class {classe} with shape {img.shape}.")
+        _, descrittori = sift.detectAndCompute(img, None)
+
+        if descrittori is not None:
+            print(f"Extracted {len(descrittori)} descriptors from image of class {classe}.")
+            cv.normalize(descrittori, descrittori, norm_type=cv.NORM_L2)
+            lista_descrittori.append((classe, descrittori))
+
+    return lista_descrittori
+
+
+def genera_istogrammi(PATH_VOCABOLARIO, lista_descrittori):
+
     lista_istogrammi = []
 
     with open(PATH_VOCABOLARIO, 'rb') as f:
         km_vocabolario = pickle.load(f)
         print("fatto")
 
-    for classe, img in leggi_foto(PATH_DATASET):
-        print(f"Processing image of class {classe} with shape {img.shape}.")
-        _ , descrittori = sift.detectAndCompute(img, None)
+    for classe, descrittori in lista_descrittori:
+        prediction = km_vocabolario.predict(descrittori)
+        print(f"Predicted class: {prediction}")
 
-        if descrittori is not None:
-            print(f"Extracted {len(descrittori)} descriptors from image of class {classe}.")
-            cv.normalize(descrittori, descrittori, norm_type=cv.NORM_L2)
-            prediction = km_vocabolario.predict(descrittori)
-            print(f"Predicted class: {prediction}")
+        histogram = np.bincount(prediction, minlength=km_vocabolario.n_clusters)
+        histogram = histogram / np.linalg.norm(histogram) #normalizzazione L2
+        
+        # plt.bar(range(km_vocabolario.n_clusters), histogram)
+        # plt.show()
+        lista_istogrammi.append((classe, histogram))
 
-            histogram = np.bincount(prediction, minlength=km_vocabolario.n_clusters)
-            histogram = histogram / np.linalg.norm(histogram) #normalizzazione L2
-            # plt.bar(range(km_vocabolario.n_clusters), histogram)
-            # plt.show()
-            lista_istogrammi.append((classe, histogram))
-
-    f.close()
     return lista_istogrammi
         
 
+lista_descrittori = estrai_descrittori()
+
 for k in [50, 100, 500]:
     PATH = f"Progetto_Esame/Assignment_2/descrittori&vacabolario/vocab_k{k}.pkl"
-    lista_istogrammi = genera_istogrammi(PATH)
+    lista_istogrammi = genera_istogrammi(PATH, lista_descrittori)
     
     with open(f"istogrammi_k{k}.pkl", 'wb') as f:
         pickle.dump(lista_istogrammi, f)
