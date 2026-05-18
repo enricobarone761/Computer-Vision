@@ -13,7 +13,7 @@ from sklearn.model_selection import StratifiedKFold
 from pathlib import Path
 import numpy as np
 
-PATH_VOCABOLARIO = r"Progetto_Esame\Assignment_2\descrittori&vacabolario\vocab_k50.pkl"
+PATH_VOCABOLARIO = r"Progetto_Esame\Assignment_2\descrittori&vacabolario\vocab_k500.pkl"
 PATH_DATASET = r"Progetto_Esame\Assignment_2\DATASET\UCMerced_LandUse\Images"
 
 with open(PATH_VOCABOLARIO, 'rb') as f:
@@ -31,7 +31,7 @@ def leggi_foto(cartella):
                 print(f"Image {f} read successfully with class {classe}.")
                 yield (classe, img)
 
-sift = cv.SIFT_create(nfeatures=1500)
+sift = cv.SIFT_create()
 
 lista_istogrammi = []
 
@@ -46,7 +46,32 @@ for classe, img in leggi_foto(PATH_DATASET):
         print(f"Predicted class: {prediction}")
 
         histogram = np.bincount(prediction, minlength=km_vocabolario.n_clusters)
-        histogram = histogram / np.linalg.norm(histogram)
+        histogram = histogram / np.linalg.norm(histogram) #normalizzazione L2
         # plt.bar(range(km_vocabolario.n_clusters), histogram)
         # plt.show()
         lista_istogrammi.append((classe, histogram))
+
+
+skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+X = np.array([istogramma for _, istogramma in lista_istogrammi])
+y = np.array([classe for classe, _ in lista_istogrammi])
+
+for fold, (train_index, test_index) in enumerate(skf.split(X, y)):
+    print(f"Fold {fold + 1}")
+    X_train, X_test = X[train_index], X[test_index]
+    y_train, y_test = y[train_index], y[test_index]
+
+    # Logistic Regression
+    lr = LogisticRegression()
+    lr.fit(X_train, y_train)
+    print("Logistic Regression trained.")
+
+    # Random Forest
+    rf = RandomForestClassifier()
+    rf.fit(X_train, y_train)
+    print("Random Forest trained.")
+
+    # SVM
+    svm = SVC(kernel='rbf')
+    svm.fit(X_train, y_train)
+    print("SVM trained.")
