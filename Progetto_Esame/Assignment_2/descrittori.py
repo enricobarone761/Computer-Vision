@@ -13,21 +13,31 @@ def leggi_foto(cartella):
                 print(f"Image {f} read successfully.")
                 yield img
 
-sift = cv.SIFT_create(nfeatures=1500)
-sift_list = []  
+N_FEATURES = 2000
+
+sift = cv.SIFT_create(nfeatures=N_FEATURES)
+sift_list = np.empty((N_FEATURES * 10_000, 128), dtype=np.float32)
+
+idx = 0
 
 for file in leggi_foto(PATH):
     keypoints, descriptors = sift.detectAndCompute(file, None)
-    if descriptors is not None and len(descriptors) > 0:
-        sift_list.append(descriptors)
-        print(f"Descriptors shape: {descriptors.shape}")
+    if descriptors is not None: #and len(descriptors) > 0
+        cv.normalize(descriptors, descriptors, norm_type=cv.NORM_L2)
+        r,c = descriptors.shape
+        sift_list[idx:idx+r] = descriptors
+        idx += r
+        print(f"Descriptors shape: {r} x {c}, total so far: {idx}")
 
 print(f"Total descriptors extracted: {len(sift_list)}")
 
-descriptors = np.vstack(sift_list)
-cv.normalize(descriptors, descriptors, norm_type=cv.NORM_L2)
+# Taglia solo la parte effettivamente usata
+sift_list = sift_list[:idx]
+
+#descriptors = np.vstack(sift_list)
+#cv.normalize(descriptors, descriptors, norm_type=cv.NORM_L2)
 
 with open(r'Progetto_Esame/Assignment_2/descrittori.pkl', 'wb') as f:
-    pickle.dump(descriptors, f)
+    pickle.dump(sift_list, f)
 
 print("Descriptors saved to descrittori.pkl")
