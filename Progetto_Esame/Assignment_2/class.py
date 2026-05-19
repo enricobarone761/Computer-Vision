@@ -50,7 +50,7 @@ for k in [50, 100, 500]:
                                                 colorbar=False)
         
         # Configurazione del titolo del sotto-grafico
-        titolo_sub = (
+        titolo = (
             f"{nome_modello}\n"
             f"Accuracy: {acc:.2f} | F1-Macro: {f1:.2f}\n"
             f"Precision: {prec:.2f} | Recall: {rec:.2f}"
@@ -65,7 +65,7 @@ for k in [50, 100, 500]:
             'F1-Score': f1
         })
 
-        plt.title(titolo_sub)
+        plt.title(titolo)
         plt.savefig(rf"Progetto_Esame/Assignment_2/risultati/confusion_matrix_k{k}_{nome_modello}.png", dpi=300, bbox_inches='tight', pad_inches=0.3)
 
 # Salvataggio dei risultati in un file CSV
