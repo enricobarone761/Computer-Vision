@@ -1,7 +1,7 @@
 import pickle
 from sklearn.cluster import KMeans
 
-with open('C:\\Users\\enrib\\Documents\\Ing_Informatica_LM32\\Computer-Vision\\descrittori.pkl', 'rb') as f:
+with open(r'Progetto_Esame/Assignment_2/descrittori.pkl', 'rb') as f:
     descriptors = pickle.load(f)
 
 K_VALUES = [50, 100, 500]
@@ -12,6 +12,6 @@ for K in K_VALUES:
     kmeans.fit(descriptors)
     print(f"  {K}-means addestrato con inertia: {kmeans.inertia_:.2f}")
 
-    with open(f'vocab_k{K}.pkl', 'wb') as f:
+    with open(rf'Progetto_Esame/Assignment_2/vocab_k{K}.pkl', 'wb') as f:
         pickle.dump(kmeans, f)
     print(f"  Vocabolario K={K} salvato in vocab_k{K}.pkl")

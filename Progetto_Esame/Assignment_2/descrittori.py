@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import cv2 as cv
 
-PATH = 'Progetto_Esame/Assignment_2/DATASET/AID'
+PATH = r'Progetto_Esame/Assignment_2/DATASET/AID'
 
 def leggi_foto(cartella):
     for f in Path(cartella).rglob("*"):
@@ -27,7 +27,7 @@ print(f"Total descriptors extracted: {len(sift_list)}")
 descriptors = np.vstack(sift_list)
 cv.normalize(descriptors, descriptors, norm_type=cv.NORM_L2)
 
-with open('descrittori.pkl', 'wb') as f:
+with open(r'Progetto_Esame/Assignment_2/descrittori.pkl', 'wb') as f:
     pickle.dump(descriptors, f)
 
 print("Descriptors saved to descrittori.pkl")

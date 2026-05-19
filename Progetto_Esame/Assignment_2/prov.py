@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
 
-PATH_DATASET = r"Progetto_Esame\Assignment_2\DATASET\UCMerced_LandUse\Images"
+PATH_DATASET = r"Progetto_Esame/Assignment_2/DATASET/UCMerced_LandUse/Images"
 
 #la seguente funzione di import estrae la classe dal nome del file, ignorando l'ordine
 #l'outputn è un generatore di tuple (classe, immagine)
@@ -60,10 +60,10 @@ def genera_istogrammi(PATH_VOCABOLARIO, lista_descrittori):
 lista_descrittori = estrai_descrittori()
 
 for k in [50, 100, 500]:
-    PATH = f"Progetto_Esame/Assignment_2/descrittori&vacabolario/vocab_k{k}.pkl"
+    PATH = rf"Progetto_Esame/Assignment_2/descrittori&vacabolario/vocab_k{k}.pkl"
     lista_istogrammi = genera_istogrammi(PATH, lista_descrittori)
     
-    with open(f"istogrammi_k{k}.pkl", 'wb') as f:
+    with open(rf"Progetto_Esame/Assignment_2/istogrammi/istogrammi_k{k}.pkl", 'wb') as f:
         pickle.dump(lista_istogrammi, f)
 
 

@@ -23,7 +23,7 @@ modelli = {
 # Ciclo principale sui file dei diversi k
 for k in [50, 100, 500]:
     
-    with open(f"Progetto_Esame\\Assignment_2\\istogrammi\\istogrammi_k{k}.pkl", 'rb') as f:
+    with open(rf"Progetto_Esame/Assignment_2/istogrammi/istogrammi_k{k}.pkl", 'rb') as f:
         lista_istogrammi = pickle.load(f)
     
     # Preparazione rapida delle feature e dei target
@@ -49,8 +49,8 @@ for k in [50, 100, 500]:
         # Configurazione del titolo del sotto-grafico
         titolo_sub = (
             f"{nome_modello}\n"
-            f"Acc: {acc:.2f} | F1-Macro: {f1:.2f}\n"
-            f"Prec: {prec:.2f} | Rec: {rec:.2f}"
+            f"Accuracy: {acc:.2f} | F1-Macro: {f1:.2f}\n"
+            f"Precision: {prec:.2f} | Recall: {rec:.2f}"
         )
 
         plt.title(titolo_sub)
