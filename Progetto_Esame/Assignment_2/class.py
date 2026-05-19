@@ -69,6 +69,6 @@ for k in [50, 100, 500]:
         plt.savefig(rf"Progetto_Esame/Assignment_2/risultati/confusion_matrix_k{k}_{nome_modello}.png", dpi=300, bbox_inches='tight', pad_inches=0.3)
 
 # Salvataggio dei risultati in un file CSV
-risultati = pd.DataFrame(risultati, index=None).sort_values(by=['Accuracy'], ascending=False)
-risultati.to_csv(rf"Progetto_Esame/Assignment_2/risultati/metriche_modelli.csv")
+risultati = pd.DataFrame(risultati).sort_values(by=['Accuracy'], ascending=False)
+risultati.to_excel(rf"Progetto_Esame/Assignment_2/risultati/metriche_modelli.csv")
 print(risultati)

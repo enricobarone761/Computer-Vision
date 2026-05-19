@@ -19,25 +19,7 @@ def leggi_foto(cartella):
                 yield (classe, img)
 
 
-def estrai_descrittori(cartella=PATH_DATASET):
-    sift = cv.SIFT_create()
-    lista_descrittori = []
-
-    for classe, img in leggi_foto(cartella):
-        print(f"Processing image of class {classe} with shape {img.shape}.")
-        _, descrittori = sift.detectAndCompute(img, None)
-
-        if descrittori is not None:
-            print(f"Extracted {len(descrittori)} descriptors from image of class {classe}.")
-            cv.normalize(descrittori, descrittori, norm_type=cv.NORM_L2)
-            lista_descrittori.append((classe, descrittori))
-
-    return lista_descrittori
-
-
-def genera_istogrammi(PATH_VOCABOLARIO, lista_descrittori):
-
-    lista_istogrammi = []
+def genera_istogrammi(PATH_VOCABOLARIO):
 
     with open(PATH_VOCABOLARIO, 'rb') as f:
         km_vocabolario = pickle.load(f)
@@ -57,11 +39,22 @@ def genera_istogrammi(PATH_VOCABOLARIO, lista_descrittori):
     return lista_istogrammi
         
 
-lista_descrittori = estrai_descrittori()
+sift = cv.SIFT_create()
+lista_descrittori = []
+
+for classe, img in leggi_foto(PATH_DATASET):
+    print(f"Processing image of class {classe} with shape {img.shape}.")
+    _, descrittori = sift.detectAndCompute(img, None)
+
+    if descrittori is not None:
+        print(f"Extracted {len(descrittori)} descriptors from image of class {classe}.")
+        cv.normalize(descrittori, descrittori, norm_type=cv.NORM_L2)
+        lista_descrittori.append((classe, descrittori))
+
 
 for k in [50, 100, 500]:
     PATH = rf"Progetto_Esame/Assignment_2/descrittori&vacabolario/vocab_k{k}.pkl"
-    lista_istogrammi = genera_istogrammi(PATH, lista_descrittori)
+    lista_istogrammi = genera_istogrammi(PATH)
     
     with open(rf"Progetto_Esame/Assignment_2/istogrammi/istogrammi_k{k}.pkl", 'wb') as f:
         pickle.dump(lista_istogrammi, f)
