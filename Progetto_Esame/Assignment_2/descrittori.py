@@ -37,7 +37,7 @@ sift_list = sift_list[:idx]
 #descriptors = np.vstack(sift_list)
 #cv.normalize(descriptors, descriptors, norm_type=cv.NORM_L2)
 
-with open(r'Progetto_Esame/Assignment_2/descrittori.pkl', 'wb') as f:
+with open(r'Progetto_Esame/Assignment_2/descrittori_new.pkl', 'wb') as f:
     pickle.dump(sift_list, f)
 
-print("Descriptors saved to descrittori.pkl")
+print("Descriptors saved to descrittori_new.pkl")
