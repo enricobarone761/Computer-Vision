@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 import seaborn
+import pandas as pd
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -19,6 +20,8 @@ modelli = {
     'Random Forest': RandomForestClassifier(random_state=42),
     'SVM': SVC(kernel='rbf', random_state=42)
 }
+
+risultati = []
 
 # Ciclo principale sui file dei diversi k
 for k in [50, 100, 500]:
@@ -40,8 +43,8 @@ for k in [50, 100, 500]:
         rec  = report["macro avg"]["recall"]
         f1   = report["macro avg"]["f1-score"]
         
-        ConfusionMatrixDisplay.from_predictions(y, 
-                                                y_pred, 
+        ConfusionMatrixDisplay.from_predictions(y_true=y, 
+                                                y_pred=y_pred, 
                                                 cmap=plt.cm.Blues,
                                                 xticks_rotation='vertical',
                                                 colorbar=False)
@@ -53,6 +56,19 @@ for k in [50, 100, 500]:
             f"Precision: {prec:.2f} | Recall: {rec:.2f}"
         )
 
+        risultati.append({
+            'k': k,
+            'Model': nome_modello,
+            'Accuracy': acc,
+            'Precision': prec,
+            'Recall': rec,
+            'F1-Score': f1
+        })
+
         plt.title(titolo_sub)
-        plt.tight_layout()
-        plt.show()
+        plt.savefig(rf"Progetto_Esame/Assignment_2/risultati/confusion_matrix_k{k}_{nome_modello}.png", dpi=300, bbox_inches='tight', pad_inches=0.3)
+
+# Salvataggio dei risultati in un file CSV
+risultati = pd.DataFrame(risultati, index=None).sort_values(by=['Accuracy'], ascending=False)
+risultati.to_csv(rf"Progetto_Esame/Assignment_2/risultati/metriche_modelli.csv")
+print(risultati)
