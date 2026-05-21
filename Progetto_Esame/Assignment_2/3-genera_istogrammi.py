@@ -55,10 +55,11 @@ for classe, img in leggi_foto(PATH_DATASET):
 
 
 for k in [50, 100, 500]:
-    PATH = rf"Progetto_Esame/Assignment_2/descrittori&vacabolario/vocab_k{k}_300.pkl"
+    
+    PATH = rf"Progetto_Esame/Assignment_2/descrittori_e_vacabolario/vocab_k{k}_new.pkl"
     lista_istogrammi = genera_istogrammi(PATH)
     
-    with open(rf"Progetto_Esame/Assignment_2/istogrammi/istogrammi_k{k}.pkl", 'wb') as f:
+    with open(rf"Progetto_Esame/Assignment_2/istogrammi_BoW/istogrammi_k{k}.pkl", 'wb') as f:
         pickle.dump(lista_istogrammi, f)
 
 
