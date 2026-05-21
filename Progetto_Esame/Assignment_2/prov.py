@@ -21,6 +21,8 @@ def leggi_foto(cartella):
 
 def genera_istogrammi(PATH_VOCABOLARIO):
 
+    lista_istogrammi = []
+
     with open(PATH_VOCABOLARIO, 'rb') as f:
         km_vocabolario = pickle.load(f)
         print("fatto")
@@ -53,7 +55,7 @@ for classe, img in leggi_foto(PATH_DATASET):
 
 
 for k in [50, 100, 500]:
-    PATH = rf"Progetto_Esame/Assignment_2/descrittori&vacabolario/vocab_k{k}.pkl"
+    PATH = rf"Progetto_Esame/Assignment_2/descrittori&vacabolario/vocab_k{k}_300.pkl"
     lista_istogrammi = genera_istogrammi(PATH)
     
     with open(rf"Progetto_Esame/Assignment_2/istogrammi/istogrammi_k{k}.pkl", 'wb') as f:

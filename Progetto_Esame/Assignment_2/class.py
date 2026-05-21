@@ -70,5 +70,5 @@ for k in [50, 100, 500]:
 
 # Salvataggio dei risultati in un file CSV
 risultati = pd.DataFrame(risultati).sort_values(by=['Accuracy'], ascending=False)
-risultati.to_excel(rf"Progetto_Esame/Assignment_2/risultati/metriche_modelli.csv")
+#risultati.to_excel(rf"Progetto_Esame/Assignment_2/risultati/metriche_modelli.csv")
 print(risultati)

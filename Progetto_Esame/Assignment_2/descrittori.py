@@ -13,7 +13,7 @@ def leggi_foto(cartella):
                 print(f"Image {f} read successfully.")
                 yield img
 
-N_FEATURES = 2000
+N_FEATURES = 300
 
 sift = cv.SIFT_create(nfeatures=N_FEATURES)
 sift_list = np.empty((N_FEATURES * 10_000, 128), dtype=np.float32)
@@ -37,7 +37,7 @@ sift_list = sift_list[:idx]
 #descriptors = np.vstack(sift_list)
 #cv.normalize(descriptors, descriptors, norm_type=cv.NORM_L2)
 
-with open(r'Progetto_Esame/Assignment_2/descrittori_new.pkl', 'wb') as f:
+with open(r'Progetto_Esame/Assignment_2/descrittori_300.pkl', 'wb') as f:
     pickle.dump(sift_list, f)
 
-print("Descriptors saved to descrittori_new.pkl")
+print("Descriptors saved to descrittori_300.pkl")
