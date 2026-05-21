@@ -1,15 +1,17 @@
 import numpy as np
+import os
 import pickle
 import matplotlib.pyplot as plt
 import seaborn
 import pandas as pd
 
+from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
 from sklearn.metrics import classification_report, ConfusionMatrixDisplay, confusion_matrix
-from sklearn.model_selection import StratifiedKFold, cross_val_predict
+from sklearn.model_selection import StratifiedKFold
 
 # Configurazione della Cross-Validation
 skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
@@ -34,7 +36,15 @@ for k in [50, 100, 500]:
     y = np.array([classe for classe, _ in lista_istogrammi])
     
     for nome_modello, modello in modelli.items():
-        y_pred = cross_val_predict(modello, X, y, cv=skf, n_jobs=-1)
+
+        y_pred = np.empty_like(y)
+        for train_idx, test_idx in skf.split(X, y):
+            m = clone(modello)
+            m.fit(X[train_idx], y[train_idx])
+            y_pred[test_idx] = m.predict(X[test_idx])
+
+        with open(rf"Progetto_Esame/Assignment_2/modelli_addestrati/{nome_modello}_k{k}_addestrato.pkl", 'wb') as f:
+            pickle.dump(m, f)
         
         # Estrazione metriche
         report = classification_report(y, y_pred, output_dict=True)
@@ -67,6 +77,7 @@ for k in [50, 100, 500]:
 
         plt.title(titolo)
         plt.savefig(rf"Progetto_Esame/Assignment_2/confusion_matrix/confusion_matrix_k{k}_{nome_modello}.png", dpi=300, bbox_inches='tight', pad_inches=0.3)
+
 
 # Salvataggio dei risultati in un file CSV
 risultati = pd.DataFrame(risultati).sort_values(by=['Accuracy'], ascending=False)
