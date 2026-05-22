@@ -7,15 +7,15 @@ import numpy as np
 
 PATH_DATASET = r"Progetto_Esame/Assignment_2/DATASET/UCMerced_LandUse/Images"
 
-#la seguente funzione di import estrae la classe dal nome del file, ignorando l'ordine
-#l'outputn è un generatore di tuple (classe, immagine)
+#la classe viene presa dalla cartella padre, perché il dataset è organizzato per classi
+#restituisce coppie (classe, immagine) senza caricare tutto in memoria
 def leggi_foto(cartella):
     for f in Path(cartella).rglob("*"):
         if f.is_file():
             img = cv.imread(str(f), flags=cv.IMREAD_GRAYSCALE)
             if img is not None:# imread ritorna None se il file è corrotto
                 classe = f.parent.name
-                print(f"Image {f} read successfully with class {classe}.")
+                print(f"caricata immagine {f}")
                 yield (classe, img)
 
 
@@ -25,17 +25,18 @@ def genera_istogrammi(PATH_VOCABOLARIO):
 
     with open(PATH_VOCABOLARIO, 'rb') as f:
         km_vocabolario = pickle.load(f)
-        print("fatto")
+        print("vocabolario caricato")
 
     for classe, descrittori in lista_descrittori:
         prediction = km_vocabolario.predict(descrittori)
-        print(f"Predicted class: {prediction}")
 
+        #conta i visual word e costruisce il bag of words dell'immagine
         histogram = np.bincount(prediction, minlength=km_vocabolario.n_clusters)
-        histogram = histogram / np.linalg.norm(histogram) #normalizzazione L2
+        histogram = histogram / np.linalg.norm(histogram)  #normalizzazione L2
 
         # plt.bar(range(km_vocabolario.n_clusters), histogram)
         # plt.show()
+
         lista_istogrammi.append((classe, histogram))
 
     return lista_istogrammi
@@ -45,13 +46,12 @@ sift = cv.SIFT_create()
 lista_descrittori = []
 
 for classe, img in leggi_foto(PATH_DATASET):
-    print(f"Processing image of class {classe} with shape {img.shape}.")
     _, descrittori = sift.detectAndCompute(img, None)
 
     if descrittori is not None:
-        print(f"Extracted {len(descrittori)} descriptors from image of class {classe}.")
         cv.normalize(descrittori, descrittori, norm_type=cv.NORM_L2)
         lista_descrittori.append((classe, descrittori))
+        print(f"estratti {descrittori.shape} descrittori dall'immagine")
 
 
 for k in [50, 100, 500]:
@@ -61,6 +61,8 @@ for k in [50, 100, 500]:
     
     with open(rf"Progetto_Esame/Assignment_2/istogrammi_BoW/istogrammi_k{k}.pkl", 'wb') as f:
         pickle.dump(lista_istogrammi, f)
+
+    print(f"istogrammi salvati per k={k}")
 
 
 
