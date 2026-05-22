@@ -31,12 +31,18 @@ for k in [50, 100, 500]:
     with open(rf"Progetto_Esame/Assignment_2/istogrammi_BoW/istogrammi_k{k}.pkl", 'rb') as f:
         lista_istogrammi = pickle.load(f)
     
+    #TODO valutare approccio con pandas
     # Preparazione rapida delle feature e dei target
     X = np.array([istogramma for _, istogramma in lista_istogrammi])
     y = np.array([classe for classe, _ in lista_istogrammi])
     
     for nome_modello, modello in modelli.items():
 
+        #y_pred = cross_val_predict(modello, X, y, cv=skf)
+
+
+        #TODO spiegare per bene questa funzione e controllare che la programmazione ad oggetti sia corretta (clone)
+        #che i modelli vengano correttamente istanziati e non venga addestrato sempre lo stesso modello (con rischio di overfitting o data leakage)
         y_pred = np.empty_like(y)
         for train_idx, test_idx in skf.split(X, y):
             m = clone(modello)
