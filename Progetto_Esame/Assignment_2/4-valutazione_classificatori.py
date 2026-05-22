@@ -1,22 +1,21 @@
 import numpy as np
-import os
 import pickle
 import matplotlib.pyplot as plt
-import seaborn
 import pandas as pd
 
-from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
+from sklearn.base import clone
+from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import classification_report, ConfusionMatrixDisplay, confusion_matrix
 from sklearn.model_selection import StratifiedKFold
 
-# Configurazione della Cross-Validation
+
+#cross-validation stratificata, così ogni fold mantiene la stessa distribuzione delle classi
 skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
 
-# Definizione dei modelli da testare
 modelli = {
     'Logistic Regression': LogisticRegression(random_state=42, max_iter=1000),
     'Random Forest': RandomForestClassifier(random_state=42),
@@ -25,32 +24,23 @@ modelli = {
 
 risultati = []
 
-# Ciclo principale sui file dei diversi k
 for k in [50, 100, 500]:
     
     with open(rf"Progetto_Esame/Assignment_2/istogrammi_BoW/istogrammi_k{k}.pkl", 'rb') as f:
         lista_istogrammi = pickle.load(f)
     
-    #TODO valutare approccio con pandas
-    # Preparazione rapida delle feature e dei target
-    X = np.array([istogramma for _, istogramma in lista_istogrammi])
-    y = np.array([classe for classe, _ in lista_istogrammi])
+    X = [istogramma for _, istogramma in lista_istogrammi]
+    y = [classe for classe, _ in lista_istogrammi]
     
     for nome_modello, modello in modelli.items():
 
-        #y_pred = cross_val_predict(modello, X, y, cv=skf)
+        y_pred = cross_val_predict(modello, X, y, cv=skf, n_jobs=-1)
 
-
-        #TODO spiegare per bene questa funzione e controllare che la programmazione ad oggetti sia corretta (clone)
-        #che i modelli vengano correttamente istanziati e non venga addestrato sempre lo stesso modello (con rischio di overfitting o data leakage)
-        y_pred = np.empty_like(y)
-        for train_idx, test_idx in skf.split(X, y):
-            m = clone(modello)
-            m.fit(X[train_idx], y[train_idx])
-            y_pred[test_idx] = m.predict(X[test_idx])
-
-        with open(rf"Progetto_Esame/Assignment_2/modelli_addestrati/{nome_modello}_k{k}_addestrato.pkl", 'wb') as f:
-            pickle.dump(m, f)
+        # y_pred = np.empty_like(y)
+        # for train_idx, test_idx in skf.split(X, y):
+        #     m = clone(modello)
+        #     m.fit(X[train_idx], y[train_idx])
+        #     y_pred[test_idx] = m.predict(X[test_idx])
         
         # Estrazione metriche
         report = classification_report(y, y_pred, output_dict=True)
@@ -65,7 +55,7 @@ for k in [50, 100, 500]:
                                                 xticks_rotation='vertical',
                                                 colorbar=False)
         
-        # Configurazione del titolo del sotto-grafico
+        #titolo compatto con le metriche principali
         titolo = (
             f"{nome_modello}\n"
             f"Accuracy: {acc:.2f} | F1-Macro: {f1:.2f}\n"
@@ -85,7 +75,32 @@ for k in [50, 100, 500]:
         plt.savefig(rf"Progetto_Esame/Assignment_2/confusion_matrix/confusion_matrix_k{k}_{nome_modello}.png", dpi=300, bbox_inches='tight', pad_inches=0.3)
 
 
-# Salvataggio dei risultati in un file CSV
+#ho scelto l'accuracy come metrica per scegliere il miglior modello in quando il dataset è bilanciato 
+#e quindi fornisce una buona indicazione della performance generale del modello. 
 risultati = pd.DataFrame(risultati).sort_values(by=['Accuracy'], ascending=False)
-#risultati.to_excel(rf"Progetto_Esame/Assignment_2/risultati/metriche_modelli.csv")
 print(risultati)
+
+#################
+# di seguito addestro il modello finale con il miglior k e il miglior classificatore sull'intoro dataset 
+# senza distinzioni tra train e test set) così da poterlo utilizzare per l'inferenza sulla singola immagine di test
+# (come suggerito a lezione)
+#################
+
+best_model_config = risultati.iloc[0]
+best_k = best_model_config['k']
+best_model_name = best_model_config['Model']
+
+print(f"addestramento finale: {best_model_name} con k={best_k}")
+
+with open(rf"Progetto_Esame/Assignment_2/istogrammi_BoW/istogrammi_k{best_k}.pkl", 'rb') as f:
+    lista_istogrammi = pickle.load(f)
+
+X = [istogramma for _, istogramma in lista_istogrammi]
+y = [classe for classe, _ in lista_istogrammi]
+
+model = clone(modelli[best_model_name])
+model.fit(X, y)
+
+with open(rf"Progetto_Esame/Assignment_2/modelli_addestrati/{best_model_name}_k{best_k}_addestrato.pkl", 'wb') as f:
+    pickle.dump(model, f)
+print("Modello finale salvato correttamente")
