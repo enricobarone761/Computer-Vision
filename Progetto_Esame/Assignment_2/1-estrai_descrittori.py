@@ -1,6 +1,5 @@
 from pathlib import Path
 import pickle
-import numpy as np
 import cv2 as cv
 
 PATH = r'Progetto_Esame/Assignment_2/DATASET/AID'

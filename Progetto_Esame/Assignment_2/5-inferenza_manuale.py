@@ -2,9 +2,7 @@ import pickle
 import cv2 as cv
 import numpy as np
 
-
 IMMAGINE_TEST_PATH = r'Progetto_Esame/Assignment_2/test_image_from_internet.png'
-
 
 
 #Miglior vocabolario con score più alto -> K=500 
@@ -43,7 +41,7 @@ histogram = histogram / np.linalg.norm(histogram)  #normalizzazione L2
 #6. caricare il classificatore addestrato migliore
 with open(PATH_CLASSIFICATORE, 'rb') as f:
     classificatore = pickle.load(f)
-    print("Loaded the best classifier.")
+    print("classificatore caricato")
 
     
 #7. dedurre la classe di appartenenza della foto
