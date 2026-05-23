@@ -14,7 +14,7 @@ def leggi_foto(cartella):
                 print(f"caricata immagine {f}")
                 yield img
 
-N_FEATURES = 700
+N_FEATURES = 1000
 
 sift = cv.SIFT_create(nfeatures=N_FEATURES)
 sift_list = []

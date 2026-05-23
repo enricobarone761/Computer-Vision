@@ -1,6 +1,7 @@
 import pickle
 import cv2 as cv
 import numpy as np
+from sklearn.preprocessing import normalize
 
 IMMAGINE_TEST_PATH = r'Progetto_Esame/Assignment_2/test_image_from_internet.png'
 
@@ -19,7 +20,7 @@ sift = cv.SIFT_create()
 keypoints, descrittori = sift.detectAndCompute(im, None)
 if descrittori is not None:
     print(f"estratti {len(descrittori)} descrittori dall'immagine di test")
-    cv.normalize(descrittori, descrittori, norm_type=cv.NORM_L2)
+    descrittori = normalize(descrittori, norm='l2', axis=1)
 else:
     raise ValueError("nessun descrittore trovato nell'immagine di test")
 

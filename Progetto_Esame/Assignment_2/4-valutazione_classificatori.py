@@ -76,7 +76,7 @@ for k in [50, 100, 500]:
 
 
 #ho scelto l'accuracy come metrica per scegliere il miglior modello in quando il dataset è bilanciato 
-#e quindi fornisce una buona indicazione della performance generale del modello. 
+#e quindi fornisce una buona indicazione della performance generale del modello. TODO da rifare
 risultati = pd.DataFrame(risultati).sort_values(by=['Accuracy'], ascending=False)
 print(risultati)
 
