@@ -34,6 +34,11 @@ for k in [50, 100, 500]:
     
     for nome_modello, modello in modelli.items():
 
+        #cross_val_predict esegue la cross-validation e restituisce le predizioni per ogni campione,
+        #ottenute dal modello addestrato sui fold di training corrispondenti.
+        #il modello viene addestrato separatamente su ogni fold in thread paralleli (n_jobs=-1).
+        #ogni ciclo di addestramento e predizione è indipendente dagli altri.
+        #il modello viene clonato automaticamente dal dizionario prima di ogni addestramento. 
         y_pred = cross_val_predict(modello, X, y, cv=skf, n_jobs=-1)
 
         # y_pred = np.empty_like(y)
@@ -75,8 +80,8 @@ for k in [50, 100, 500]:
         plt.savefig(rf"Progetto_Esame/Assignment_2/confusion_matrix/confusion_matrix_k{k}_{nome_modello}.png", dpi=300, bbox_inches='tight', pad_inches=0.3)
 
 
-#ho scelto l'accuracy come metrica per scegliere il miglior modello in quando il dataset è bilanciato 
-#e quindi fornisce una buona indicazione della performance generale del modello. TODO da rifare
+# Usiamo l'Accuracy come metrica principale perché il dataset è ben bilanciato tra le classi.
+# Precision, Recall e F1-Score sarebbero importanti con dataset sbilanciati, ma qui sono ridondanti con Accuracy
 risultati = pd.DataFrame(risultati).sort_values(by=['Accuracy'], ascending=False)
 print(risultati)
 

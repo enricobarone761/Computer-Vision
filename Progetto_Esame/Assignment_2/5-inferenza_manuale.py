@@ -30,8 +30,7 @@ with open(PATH_VOCABOLARIO, 'rb') as f:
     print("vocabolario caricato")
 
 #4. assegno ogni descrittore al cluster più vicino, cioè alla parola visiva
-prediction = km_vocabolario.predict(descrittori.astype(np.float64)) #il cast a float64 è necessario perchè TODO
-print(f"parole visive predette: {prediction}")
+prediction = km_vocabolario.predict(descrittori.astype(np.float64)) #ho dovutro necessariamente castare i descrittori a float64 perché il vocabolario esce dal KMeans in questo modo, altrimenti si ottiene un errore.
 
 
 #5. costruire l'istogramma (con normalizzazione L2)
