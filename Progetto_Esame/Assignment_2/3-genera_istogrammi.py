@@ -1,6 +1,7 @@
 import pickle
 import cv2 as cv
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import normalize
 
 from pathlib import Path
 import numpy as np
@@ -28,7 +29,7 @@ def genera_istogrammi(PATH_VOCABOLARIO):
         print("vocabolario caricato")
 
     for classe, descrittori in lista_descrittori:
-        prediction = km_vocabolario.predict(descrittori)
+        prediction = km_vocabolario.predict(descrittori.astype(np.float64))
 
         #conta i visual word e costruisce il bag of words dell'immagine
         histogram = np.bincount(prediction, minlength=km_vocabolario.n_clusters)
@@ -49,23 +50,17 @@ for classe, img in leggi_foto(PATH_DATASET):
     _, descrittori = sift.detectAndCompute(img, None)
 
     if descrittori is not None:
-        cv.normalize(descrittori, descrittori, norm_type=cv.NORM_L2)
-        lista_descrittori.append((classe, descrittori))
+        descrittori = normalize(descrittori, norm='l2', axis=1)
+        lista_descrittori.extend([(classe, descrittori)])
         print(f"estratti {descrittori.shape} descrittori dall'immagine")
 
 
 for k in [50, 100, 500]:
     
-    PATH = rf"Progetto_Esame/Assignment_2/descrittori_e_vacabolario/vocab_k{k}_300.pkl"
+    PATH = rf"Progetto_Esame/Assignment_2/descrittori_e_vacabolario/vocab_k{k}_1000.pkl"
     lista_istogrammi = genera_istogrammi(PATH)
     
     with open(rf"Progetto_Esame/Assignment_2/istogrammi_BoW/istogrammi_k{k}.pkl", 'wb') as f:
         pickle.dump(lista_istogrammi, f)
 
     print(f"istogrammi salvati per k={k}")
-
-
-
-
-
-

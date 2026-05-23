@@ -57,7 +57,7 @@ for k in [50, 100, 500]:
         
         #titolo compatto con le metriche principali
         titolo = (
-            f"{nome_modello}\n"
+            f"{nome_modello} | k={k}\n"
             f"Accuracy: {acc:.2f} | F1-Macro: {f1:.2f}\n"
             f"Precision: {prec:.2f} | Recall: {rec:.2f}"
         )

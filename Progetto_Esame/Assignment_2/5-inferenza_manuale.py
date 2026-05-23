@@ -6,7 +6,7 @@ IMMAGINE_TEST_PATH = r'Progetto_Esame/Assignment_2/test_image_from_internet.png'
 
 
 #Miglior vocabolario con score più alto -> K=500 
-PATH_VOCABOLARIO = r'Progetto_Esame/Assignment_2/descrittori_e_vacabolario/vocab_k500_300.pkl'
+PATH_VOCABOLARIO = r'Progetto_Esame/Assignment_2/descrittori_e_vacabolario/vocab_k500_1000.pkl'
 #Miglior classificatore con accuracy più alta -> SVM
 PATH_CLASSIFICATORE = r'Progetto_Esame/Assignment_2/modelli_addestrati/SVM_k500_addestrato.pkl'
 
@@ -29,7 +29,7 @@ with open(PATH_VOCABOLARIO, 'rb') as f:
     print("vocabolario caricato")
 
 #4. assegno ogni descrittore al cluster più vicino, cioè alla parola visiva
-prediction = km_vocabolario.predict(descrittori)
+prediction = km_vocabolario.predict(descrittori.astype(np.float64)) #il cast a float64 è necessario perchè TODO
 print(f"parole visive predette: {prediction}")
 
 
