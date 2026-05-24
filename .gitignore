@@ -10,3 +10,4 @@ descrittori*.pkl
 descrittori_copy.py
 pippo.py
 .venv
+.venvTF

@@ -18,7 +18,7 @@ skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
 
 modelli = {
     'Logistic Regression': LogisticRegression(random_state=42, max_iter=1000),
-    'Random Forest': RandomForestClassifier(random_state=42),
+    'Random Forest': RandomForestClassifier(random_state=42, n_estimators=400),
     'SVM': SVC(kernel='rbf', random_state=42)
 }
 
@@ -36,8 +36,8 @@ for k in [50, 100, 500]:
 
         #cross_val_predict esegue la cross-validation e restituisce le predizioni per ogni campione,
         #ottenute dal modello addestrato sui fold di training corrispondenti.
-        #il modello viene addestrato separatamente su ogni fold in thread paralleli (n_jobs=-1).
-        #ogni ciclo di addestramento e predizione è indipendente dagli altri.
+        #il modello viene addestrato separatamente su ogni fold in jobs paralleli (n_jobs=-1).
+        #ogni ciclo di addestramento e predizione è completamente indipendente dagli altri.
         #il modello viene clonato automaticamente dal dizionario prima di ogni addestramento. 
         y_pred = cross_val_predict(modello, X, y, cv=skf, n_jobs=-1)
 
@@ -87,7 +87,7 @@ print(risultati)
 
 #################
 # di seguito addestro il modello finale con il miglior k e il miglior classificatore sull'intoro dataset 
-# senza distinzioni tra train e test set) così da poterlo utilizzare per l'inferenza sulla singola immagine di test
+# (senza distinzioni tra train e test set) così da poterlo utilizzare per l'inferenza su immagini fuori dal dataset
 # (come suggerito a lezione)
 #################
 
