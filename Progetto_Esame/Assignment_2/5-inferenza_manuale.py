@@ -47,4 +47,4 @@ with open(PATH_CLASSIFICATORE, 'rb') as f:
 #7. dedurre la classe di appartenenza della foto
 classe_predetta = classificatore.predict(histogram.reshape(1, -1))
 
-print(f"classe predetta per l'immagine di test: {classe_predetta[0]}")
+print(f"classe predetta per l'immagine di test: {classe_predetta}")
