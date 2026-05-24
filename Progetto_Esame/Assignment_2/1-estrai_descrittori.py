@@ -2,7 +2,6 @@ from pathlib import Path
 import pickle
 import cv2 as cv
 from sklearn.preprocessing import normalize
-import numpy as np
 
 PATH = r'Progetto_Esame/Assignment_2/DATASET/AID'
 
