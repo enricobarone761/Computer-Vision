@@ -1,6 +1,6 @@
 import pickle
 import cv2 as cv
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from sklearn.preprocessing import normalize
 
 from pathlib import Path

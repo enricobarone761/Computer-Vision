@@ -1,4 +1,3 @@
-import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -7,9 +6,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
-from sklearn.base import clone
+#from sklearn.base import clone
 from sklearn.model_selection import cross_val_predict
-from sklearn.metrics import classification_report, ConfusionMatrixDisplay, confusion_matrix
+from sklearn.metrics import classification_report, ConfusionMatrixDisplay
 from sklearn.model_selection import StratifiedKFold
 
 
