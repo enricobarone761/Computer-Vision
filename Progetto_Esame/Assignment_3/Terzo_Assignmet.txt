@@ -1,0 +1,77 @@
+Assignment 3 — Classificazione di Immagini attraverso Reti Convoluzionali
+Sviluppare un sistema completo per la classificazione di immagini aeree acquisite da camere RGB.
+Data una immagine in input, il sistema dovrà classificare l’immagine come appartenente ad una delle seguenti 21 classi: agricultural,
+airplane, baseball_diamond, beach, buildings, chaparral, dense_residential, forest, freeway, golf_course, harbor, intersection,
+medium_residential, mobile_homepark, overpass, parking_lot, river, runway, sparse_residential, storage_tanks, tennis_court.
+
+L’obiettivo è costruire una rete convoluzionale residuale (non potete usare resnet predefinita, implementate il vostro blocco
+residuale) con le seguenti specifiche minime:
+rete custom con almeno 2 blocchi residuali
+layer di flattening prima del classificatore finale
+classificatore finale (MLP) con 1-3 fully connected layers
+dropout e/o batch normalization consigliati
+
+Non potete usare average pooling prima del classificatore finale.
+I modelli devono essere implementati in tensorflow-keras. Utilizzare la categorical cross-entropy come funzione di loss.
+Siete liberi di scegliere la configurazione dei layer come meglio credete e in base alle risorse di calcolo a vostra disposizione.
+Potete anche scegliere di ridimensionare le immagini in input (sotto 200x200) o di effettuare qualsiasi pre-processing riteniate utile
+per ridurre i tempi di addestramento senza abbassare troppo le prestazioni.
+
+
+1.Addestramento
+
+Dovete confrontare due strategie di addestramento. Riportare le curve di training/validation loss e accuracy dei modelli addestrati
+per verificare che non si sia in overfitting. In tutti gli esperimenti, utilizzate Early Stopping.
+La prima strategia di addestramento prevede un pre-addestramento su un dataset di grandi dimensioni (dataset AID) e un finetuning sul dataset di interesse (UC dataset).
+- Pre-Addestramento:
+Si richiede di utilizzare il dataset AID (Aerial Image Dataset) che può essere scaricato dal link alla pagina
+https://www.kaggle.com/datasets/jiayuanchengala/aid-scene-classification-datasets per pre-addestrare i vostri modelli. Non è
+necessario che le classi del dataset AID coincidano con quelle del dataset UC Merced. Il pre-addestramento serve ad apprendere
+feature visuali generali trasferibili al dataset target.
+Il pre-training su AID deve essere supervisionato utilizzando le etichette del dataset AID e dovrete utilizzare un validation set
+per accertarvi che il modello non vada in overfitting monitorando la validation loss. Se il dataset non fornisce validation set,
+usate 70% per addestramento e 30% per validation assicurandovi che in ogni set siano presenti campioni di tutte le classi. Ponete
+particolare attenzione alla scelta del learning rate, dell’ottimizzatore e degli altri iper-parametri del modello.
+
+- Fine-Tuning
+Dopo la fase di pre-addestramento, potrete fine-tunare il modello sul dataset UC Merced Land Use Dataset disponibile al link
+https://www.kaggle.com/datasets/abdulhasibuddin/uc-merced-land-use-dataset. Utilizzate una partizione fissa in modo che il
+70% dei dati sia usato come training set, il 15% come validation set e il rimanente 15% come test set. Attenzione, in questa fase
+di split dei dati assicuratevi che tutte le classi abbiano campioni in ciascun split (campionamento stratificato). Lo split va fatto
+una sola volta e usato per tutti i seguenti esperimenti. Eventuali tecniche di data augmentation devono essere applicate
+esclusivamente al training set (per evitare data leakage).
+Per fine-tunare, il layer finale di classificazione deve essere sostituito con uno compatibile con le 21 classi di UC Merced e il
+modello deve essere adattato e fine-tunato sul dataset UC Merced. Dovrete adottare una strategia di fine-tuning tra le seguenti:
+congelare completamente i layer convoluzionali appresi durante il pre-addestramento e addestrare soltanto il MLP finale,
+- congelare solo una parte della rete lasciando addestrabili anche gli ultimi layer convoluzionali,
+- effettuare il fine-tuning completo dell’intero modello.
+La scelta adottata dovrà essere descritta e motivata nella presentazione finale, discutendo eventuali vantaggi o svantaggi osservati
+durante gli esperimenti. Ponete particolare attenzione alla scelta del learning rate che dovrà essere in generale più basso.
+La seconda strategia di addestramento prevede di addestrare esclusivamente sul dataset di interesse. In particolare, utilizzate il
+dataset UC Merced Land Use Dataset usando la stessa partizione fissa che avete usato per la prima strategia di addestramento.
+2. Model Selection
+Utilizzando i risultati sul validation set del UC dataset, confrontate il modello ottenuto con la prima e con la seconda strategia di
+addestramento e selezionate quello con le migliori prestazioni monitorando la F1-score.
+Utilizzate il modello selezionato per calcolare le prestazioni sul test set riportando Accuracy, Precision, Recall, F1-score (macroaverage), Confusion Matrix.
+
+3. Inferenza
+Prevedere uno script/una funzione che permetta all’utente di utilizzare il miglior modello su una nuova immagine. Dato il path di
+una immagine RGB in input, il sistema dovrà:
+caricare l’immagine;
+pre-processare (con lo stesso pre-processing usato in training) se applicabile
+utilizzare il modello selezionato per predire la label e stampare il risultato
+
+Attenzione, le manipolazioni delle immagini vanno fatte esclusivamente con opencv.
+
+Presentazione dei risultati e Consegna
+Oltre alla consegna del codice, è richiesta una breve presentazione in formato slide (PDF). La presentazione deve contenere al
+massimo 14 slide (esclusa una slide aggiuntiva finale) e deve descrivere in modo chiaro e sintetico:
+
+l’approccio utilizzato (pipeline del metodo)
+le scelte progettuali principali (numero di layer, dimensioni del kernel, padding e ogni iper-parametro scelto con breve
+commento)
+numero totale di parametri del modello implementato e numero di parametri addestrabili nelle diverse strategie di finetuning
+i risultati ottenuti in validazione e in che modo il modello è stato selezionato
+i risultati ottenuti in test
+risultati qualitativi (quando classifica correttamente e casi in cui classifica in modo errato)
+possibili miglioramenti del sistema
