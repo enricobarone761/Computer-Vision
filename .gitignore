@@ -13,3 +13,5 @@ pippo.py
 .venvTF
 .venvWSL
 .venvTTTT
+*.keras
+avvia_addestramenti.py

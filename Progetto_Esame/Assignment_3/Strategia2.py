@@ -1,83 +1,58 @@
 import os
 import tensorflow as tf
 import keras
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
+import matplotlib.pyplot as plt
 import utils
-
-# Risoluzione standard 256x256 (coerente con UC Merced).
-AID_SIZE = (256, 256)
 
 # ─────────────────────────────────────────────
 # 1. CONFIGURAZIONE
 # ─────────────────────────────────────────────
 BATCH_SIZE   = 32
 EPOCHS       = 100
-LR           = 1e-3
+LR           = 1e-4
 SEED         = 42
-PATH = "/home/enrib/progetto/dataset/DATASET/AID" # Manteniamo il path per WSL o locale
+PATH = "/home/enrib/progetto/dataset/DATASET/UCMerced_LandUse/Images"
 
 # ─────────────────────────────────────────────
-# 2. CARICAMENTO DATASET
+# 2. CARICAMENTO E PREPARAZIONE DATI
 # ─────────────────────────────────────────────
-print("Caricamento dataset AID (256×256)...")
-X, y = utils.load_dataset(PATH, target_size=AID_SIZE)
+print("Caricamento dataset UCMerced...")
+X, y = utils.load_dataset(PATH)
+print(f"Caricate {len(X)} immagini. Shape: {X.shape}")
 
-# Split 70/30 serve solo per il pre-training su AID
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, random_state=SEED, stratify=y, shuffle=True)
+(X_train, y_train), (X_val, y_val), (X_test, y_test), class_names, num_classes = utils.prepare_ucmerced_data(X, y, seed=SEED)
 
-ohe = OneHotEncoder(sparse_output=False)
-y_train = ohe.fit_transform(y_train.reshape(-1, 1))
-y_val   = ohe.transform(y_val.reshape(-1, 1))
-
-num_classes = y_train.shape[1]
+print(f"Training set: {X_train.shape[0]} campioni")
+print(f"Validation set: {X_val.shape[0]} campioni")
+print(f"Test set: {X_test.shape[0]} campioni")
 
 # ─────────────────────────────────────────────
-# 3. CREAZIONE MODELLO
+# 3. CREAZIONE MODELLO DA ZERO (STRATEGIA 2)
 # ─────────────────────────────────────────────
-model = utils.build_model(input_shape=X.shape[1:], num_classes=num_classes)
+print("\nCostruzione modello da zero (Strategia 2)...")
+model = utils.build_model(input_shape=X_train.shape[1:], num_classes=num_classes, name="Strategia2")
 model.summary()
 
 # ─────────────────────────────────────────────
 # 4. COMPILAZIONE E CALLBACKS
 # ─────────────────────────────────────────────
-optimizer = keras.optimizers.Adam(learning_rate=LR)
 model.compile(
-    optimizer=optimizer,
+    optimizer=keras.optimizers.Adam(learning_rate=LR),
     loss="categorical_crossentropy",
     metrics=["accuracy"]
 )
 
 callbacks = [
-    keras.callbacks.EarlyStopping(
-        monitor="val_loss",
-        patience=5,
-        restore_best_weights=True,
-        verbose=1
-    ),
-    keras.callbacks.ReduceLROnPlateau(
-        monitor="val_loss",
-        factor=0.5,
-        patience=3,
-        min_lr=1e-6,
-        verbose=1
-    ),
-    keras.callbacks.ModelCheckpoint(
-        filepath="Progetto_Esame/Assignment_3/Modelli_e_CF/aid_pretrained_best.keras",
-        monitor="val_loss",
-        save_best_only=True,
-        verbose=1
-    ),
-    keras.callbacks.TensorBoard(
-        log_dir="Progetto_Esame/Assignment_3/logs/phase1_aid",
-        histogram_freq=0,
-    )
+    keras.callbacks.EarlyStopping(monitor="val_loss", patience=15, restore_best_weights=True, verbose=1),
+    keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=5, min_lr=1e-6, verbose=1),
+    keras.callbacks.ModelCheckpoint(filepath="Progetto_Esame/Assignment_3/Modelli_e_CF/strategia2_best.keras", monitor="val_loss", save_best_only=True, verbose=1),
+    keras.callbacks.TensorBoard(log_dir="Progetto_Esame/Assignment_3/logs/strategia2", histogram_freq=0)
 ]
 
 # ─────────────────────────────────────────────
 # 5. TRAINING
 # ─────────────────────────────────────────────
-print("\nInzio addestramento Fase 1 (Pre-Training su AID)...")
+print("\nInizio addestramento (Strategia 2)...")
 history = model.fit(
     X_train, y_train,
     validation_data=(X_val, y_val),
@@ -87,5 +62,4 @@ history = model.fit(
     verbose=1
 )
 
-print("\nPre-training completato.")
-print("Modello migliore salvato in: Progetto_Esame/Assignment_3/Modelli_e_CF/aid_pretrained_best.keras")
+# La valutazione è stata spostata in valuta_modelli.py
