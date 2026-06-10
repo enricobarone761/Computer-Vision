@@ -2,7 +2,7 @@ import os
 import tensorflow as tf
 import keras
 from keras import layers
-import utils
+import CNN_e_Utility as utils
 
 # ─────────────────────────────────────────────
 # 1. CONFIGURAZIONE

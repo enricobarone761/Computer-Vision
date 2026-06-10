@@ -1,5 +1,5 @@
 import keras
-import utils
+import CNN_e_Utility as utils
 
 BATCH_SIZE   = 32
 EPOCHS       = 100

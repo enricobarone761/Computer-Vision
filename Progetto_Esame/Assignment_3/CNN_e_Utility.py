@@ -1,18 +1,13 @@
 from pathlib import Path
 import numpy as np
 import cv2 as cv
-import keras
-from keras import layers
+from keras import layers, Model, Sequential, Input
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 
 # ── Iperparametri globali dell'architettura ───────────────────────────────────
 # Funzione di attivazione (modificabile: 'relu', 'gelu', 'swish')
 ACTIVATION_FUNC = 'gelu'
-
-# ─────────────────────────────────────────────────────────────────────────────
-# CARICAMENTO E PREPARAZIONE DATI
-# ─────────────────────────────────────────────────────────────────────────────
 
 def load_dataset(cartella):
     X, y = [], []
@@ -32,6 +27,7 @@ def divide_and_encode_data(X, y, only_val:bool = False):
 
     encoder = OneHotEncoder(sparse_output=False)
     
+    # uso stratify nello split così mantengo la proporzione delle classi e non sbilancio il training
     if only_val == True:
         X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
 
@@ -43,7 +39,6 @@ def divide_and_encode_data(X, y, only_val:bool = False):
 
     else:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=42, stratify=y)
-
         X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.5, random_state=42, stratify=y_test)
 
         y_train = encoder.fit_transform(y_train.reshape(-1, 1))
@@ -56,20 +51,15 @@ def divide_and_encode_data(X, y, only_val:bool = False):
 
 
 def get_data_augmentation():
-    return keras.Sequential([
+    return Sequential([
         layers.RandomFlip("horizontal_and_vertical"),
         layers.RandomRotation(0.25),         # ±90° plausibili per aereo/satellite
         layers.RandomZoom(0.15),
         layers.RandomTranslation(0.1, 0.1),  # shift spaziali fino al 10%
         layers.RandomContrast(0.2),
-        layers.RandomBrightness(0.2),       # variazioni di illuminazione
+        layers.RandomBrightness(0.2),       
     ], name="data_augmentation")
 
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# BLOCCO RESIDUALE (Pre-Activation, ResNet v2)
-# ─────────────────────────────────────────────────────────────────────────────
 
 def residual_block(x, filters, stride=1):
     """
@@ -153,7 +143,7 @@ def build_model(input_shape, num_classes):
       permettendo lo slicing diretto del modello senza necessità di reinizializzare 
       i layer Dense.
     """
-    inputs = keras.Input(shape=input_shape, name="input")
+    inputs = Input(shape=input_shape, name="input")
 
     #Data augmentation (applicata solo al training set)
     #automaticamente keras disabilita questi layer in fase di inferenza rendendo l'input uguale all'output
@@ -232,6 +222,6 @@ def build_model(input_shape, num_classes):
 
     outputs = layers.Dense(num_classes, activation="softmax",name="classifier_head")(x)
 
-    return keras.Model(inputs, outputs)
+    return Model(inputs, outputs)
 
 
