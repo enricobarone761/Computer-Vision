@@ -5,16 +5,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 import utils
 
-# Risoluzione standard 256x256 (coerente con UC Merced).
-AID_SIZE = (256, 256)
-
 # ─────────────────────────────────────────────
 # 1. CONFIGURAZIONE
 # ─────────────────────────────────────────────
 BATCH_SIZE   = 32
 EPOCHS       = 100
 LR           = 1e-3
-SEED         = 42
 PATH = "/home/enrib/progetto/dataset/DATASET/AID" # Manteniamo il path per WSL o locale
 
 # ─────────────────────────────────────────────
@@ -25,6 +21,7 @@ X, y = utils.load_dataset(PATH)
 
 # Split 70/30 serve solo per il pre-training su AID
 (X_train, y_train), (X_val, y_val), class_names = utils.divide_and_encode_data(X, y, only_val=True)
+
 
 # ─────────────────────────────────────────────
 # 3. CREAZIONE MODELLO

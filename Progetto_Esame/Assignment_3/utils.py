@@ -58,16 +58,46 @@ def divide_and_encode_data(X, y, only_val:bool = False):
 
 
 
-def get_data_augmentation():
-    #TODO da fare con openCV
-    return keras.Sequential([
-        layers.RandomFlip("horizontal_and_vertical"),
-        layers.RandomRotation(0.25),         # ±90° plausibili per aereo/satellite
-        layers.RandomZoom(0.15),
-        layers.RandomTranslation(0.1, 0.1),  # shift spaziali fino al 10%
-        layers.RandomContrast(0.2),
-        layers.RandomBrightness(0.2),       # variazioni di illuminazione
-    ])
+def augment_image_cv2(image):
+    h, w = image.shape[:2]
+    
+    # Random Flip ("horizontal_and_vertical")
+    flip_prob = np.random.rand()
+    if flip_prob < 0.25:
+        image = cv.flip(image, 1)   # orizzontale
+    elif flip_prob < 0.5:
+        image = cv.flip(image, 0)   # verticale
+    elif flip_prob < 0.75:
+        image = cv.flip(image, -1)  # entrambi
+        
+    # Random Rotation (±90°) e Random Zoom (±15%) combinati
+    angle = np.random.uniform(-90, 90)
+    zoom = np.random.uniform(0.85, 1.15)
+    M_rot_zoom = cv.getRotationMatrix2D((w / 2, h / 2), angle, zoom)
+    image = cv.warpAffine(image, M_rot_zoom, (w, h), borderMode=cv.BORDER_REFLECT_101)
+    
+    # Random Translation (±10%)
+    tx = np.random.uniform(-0.1, 0.1) * w
+    ty = np.random.uniform(-0.1, 0.1) * h
+    M_trans = np.float32([[1, 0, tx], [0, 1, ty]])
+    image = cv.warpAffine(image, M_trans, (w, h), borderMode=cv.BORDER_REFLECT_101)
+    
+    # Random Contrast (±20%) & Random Brightness (±20% -> ~51 su 255)
+    alpha = np.random.uniform(0.8, 1.2)
+    beta = np.random.uniform(-51, 51)
+    image = cv.convertScaleAbs(image, alpha=alpha, beta=beta)
+    
+    return image
+
+def apply_opencv_augmentation(X_train):
+    """
+    Applica la data augmentation direttamente all'array di immagini di training sovrascrivendole.
+    """
+    print("Applicazione data augmentation con OpenCV in corso...")
+    for i in range(len(X_train)):
+        X_train[i] = augment_image_cv2(X_train[i])
+    return X_train
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -158,9 +188,6 @@ def build_model(input_shape, num_classes, name="Custom_ResNet"):
     """
     inputs = keras.Input(shape=input_shape, name="input")
 
-    # ── Data Augmentation ─────────────────────────────────────────────────────
-    x = get_data_augmentation()(inputs)
-
     # ── Multi-scale Stem (ResNet-C style) ─────────────────────────────────────
     # Tre Conv 3×3 invece della singola Conv 7×7 originale.
     # La seconda conv a stride=1 processa la feature map a metà risoluzione
@@ -168,7 +195,7 @@ def build_model(input_shape, num_classes, name="Custom_ResNet"):
     # Questo è il principale vantaggio per immagini ad alta risoluzione.
     #
     # 256×256 → 128×128 → 128×128 →  64×64  → 32×32  (÷8 totale)
-    x = layers.Conv2D(32, 3, strides=2, padding="same",use_bias=False)(x)
+    x = layers.Conv2D(32, 3, strides=2, padding="same",use_bias=False)(inputs)
     x = layers.BatchNormalization()(x)
     x = layers.Activation(ACTIVATION_FUNC)(x)
 
