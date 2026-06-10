@@ -30,14 +30,14 @@ def load_dataset(cartella):
 
 def divide_and_encode_data(X, y, only_val:bool = False):
 
-    encoder = LabelEncoder()
+    encoder = OneHotEncoder(sparse_output=False)
     
     if only_val == True:
         X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
 
-        y_train = encoder.fit_transform(y_train)
-        y_val   = encoder.transform(y_val)
-        class_names = encoder.classes_
+        y_train = encoder.fit_transform(y_train.reshape(-1, 1))
+        y_val   = encoder.transform(y_val.reshape(-1, 1))
+        class_names = encoder.categories_[0]
 
         return (X_train, y_train), (X_val, y_val), class_names
 
@@ -46,57 +46,24 @@ def divide_and_encode_data(X, y, only_val:bool = False):
 
         X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.5, random_state=42, stratify=y_test)
 
-        y_train = encoder.fit_transform(y_train)
-        y_val   = encoder.transform(y_val)
-        y_test  = encoder.transform(y_test)
+        y_train = encoder.fit_transform(y_train.reshape(-1, 1))
+        y_val   = encoder.transform(y_val.reshape(-1, 1))
+        y_test  = encoder.transform(y_test.reshape(-1, 1))
 
-        class_names = encoder.classes_
+        class_names = encoder.categories_[0]
 
         return (X_train, y_train), (X_val, y_val), (X_test, y_test), class_names
 
 
-
-
-
-def augment_image_cv2(image):
-    h, w = image.shape[:2]
-    
-    # Random Flip ("horizontal_and_vertical")
-    flip_prob = np.random.rand()
-    if flip_prob < 0.25:
-        image = cv.flip(image, 1)   # orizzontale
-    elif flip_prob < 0.5:
-        image = cv.flip(image, 0)   # verticale
-    elif flip_prob < 0.75:
-        image = cv.flip(image, -1)  # entrambi
-        
-    # Random Rotation (±90°) e Random Zoom (±15%) combinati
-    angle = np.random.uniform(-90, 90)
-    zoom = np.random.uniform(0.85, 1.15)
-    M_rot_zoom = cv.getRotationMatrix2D((w / 2, h / 2), angle, zoom)
-    image = cv.warpAffine(image, M_rot_zoom, (w, h), borderMode=cv.BORDER_REFLECT_101)
-    
-    # Random Translation (±10%)
-    tx = np.random.uniform(-0.1, 0.1) * w
-    ty = np.random.uniform(-0.1, 0.1) * h
-    M_trans = np.float32([[1, 0, tx], [0, 1, ty]])
-    image = cv.warpAffine(image, M_trans, (w, h), borderMode=cv.BORDER_REFLECT_101)
-    
-    # Random Contrast (±20%) & Random Brightness (±20% -> ~51 su 255)
-    alpha = np.random.uniform(0.8, 1.2)
-    beta = np.random.uniform(-51, 51)
-    image = cv.convertScaleAbs(image, alpha=alpha, beta=beta)
-    
-    return image
-
-def apply_opencv_augmentation(X_train):
-    """
-    Applica la data augmentation direttamente all'array di immagini di training sovrascrivendole.
-    """
-    print("Applicazione data augmentation con OpenCV in corso...")
-    for i in range(len(X_train)):
-        X_train[i] = augment_image_cv2(X_train[i])
-    return X_train
+def get_data_augmentation():
+    return keras.Sequential([
+        layers.RandomFlip("horizontal_and_vertical"),
+        layers.RandomRotation(0.25),         # ±90° plausibili per aereo/satellite
+        layers.RandomZoom(0.15),
+        layers.RandomTranslation(0.1, 0.1),  # shift spaziali fino al 10%
+        layers.RandomContrast(0.2),
+        layers.RandomBrightness(0.2),       # variazioni di illuminazione
+    ], name="data_augmentation")
 
 
 
@@ -145,7 +112,7 @@ def residual_block(x, filters, stride=1):
 # COSTRUZIONE MODELLO
 # ─────────────────────────────────────────────────────────────────────────────
 
-def build_model(input_shape, num_classes, name="Custom_ResNet"):
+def build_model(input_shape, num_classes):
     """
     Costruisce la rete residuale custom.
 
@@ -188,6 +155,10 @@ def build_model(input_shape, num_classes, name="Custom_ResNet"):
     """
     inputs = keras.Input(shape=input_shape, name="input")
 
+    #Data augmentation (applicata solo al training set)
+    #automaticamente keras disabilita questi layer in fase di inferenza rendendo l'input uguale all'output
+    x = get_data_augmentation()(inputs)
+
     # ── Multi-scale Stem (ResNet-C style) ─────────────────────────────────────
     # Tre Conv 3×3 invece della singola Conv 7×7 originale.
     # La seconda conv a stride=1 processa la feature map a metà risoluzione
@@ -195,7 +166,7 @@ def build_model(input_shape, num_classes, name="Custom_ResNet"):
     # Questo è il principale vantaggio per immagini ad alta risoluzione.
     #
     # 256×256 → 128×128 → 128×128 →  64×64  → 32×32  (÷8 totale)
-    x = layers.Conv2D(32, 3, strides=2, padding="same",use_bias=False)(inputs)
+    x = layers.Conv2D(32, 3, strides=2, padding="same",use_bias=False)(x)
     x = layers.BatchNormalization()(x)
     x = layers.Activation(ACTIVATION_FUNC)(x)
 
@@ -249,18 +220,18 @@ def build_model(input_shape, num_classes, name="Custom_ResNet"):
     # Flatten: 600→4×4×512=8192  |  256→2×2×512=2048
     x = layers.Flatten()(x)
 
-    x = layers.Dense(1024, use_bias=False, name="mlp_dense1")(x)
+    x = layers.Dense(1024, name="mlp_dense1")(x)
     x = layers.BatchNormalization(name="mlp_bn1")(x)
     x = layers.Activation(ACTIVATION_FUNC, name="mlp_act1")(x)
     x = layers.Dropout(0.5, name="mlp_drop1")(x)
 
-    x = layers.Dense(512, use_bias=False, name="mlp_dense2")(x)
+    x = layers.Dense(512, name="mlp_dense2")(x)
     x = layers.BatchNormalization(name="mlp_bn2")(x)
     x = layers.Activation(ACTIVATION_FUNC, name="mlp_act2")(x)
     x = layers.Dropout(0.5, name="mlp_drop2")(x)
 
     outputs = layers.Dense(num_classes, activation="softmax",name="classifier_head")(x)
 
-    return keras.Model(inputs, outputs, name=name)
+    return keras.Model(inputs, outputs)
 
 
