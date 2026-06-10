@@ -21,8 +21,7 @@ print("Caricamento dataset UCMerced (256×256)...")
 X, y = utils.load_dataset(PATH, target_size=UC_SIZE)
 print(f"Caricate {len(X)} immagini. Shape: {X.shape}")
 
-(X_train, y_train), (X_val, y_val), (X_test, y_test), class_names, num_classes = \
-    utils.prepare_ucmerced_data(X, y, seed=SEED)
+(X_train, y_train), (X_val, y_val), (X_test, y_test), class_names = utils.divide_and_encode_data(X, y)
 
 print(f"Training set:   {X_train.shape[0]} campioni")
 print(f"Validation set: {X_val.shape[0]} campioni")
@@ -46,7 +45,7 @@ print("\nTutti i layer sono addestrabili (Fine-Tuning Completo).")
 # Tagliamo l'ultimo layer (il Dense per AID) prendendo l'output del penultimo layer (il Dropout)
 x = pretrained_model.layers[-2].output
 # Aggiungiamo la nuova "testa" per UC Merced
-outputs = layers.Dense(num_classes, activation="softmax", name="ucmerced_classifier")(x)
+outputs = layers.Dense(len(class_names), activation="softmax", name="ucmerced_classifier")(x)
 
 model = keras.Model(inputs=pretrained_model.input, outputs=outputs, name="Finetune_Opt3")
 model.summary()

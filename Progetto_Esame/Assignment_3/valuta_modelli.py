@@ -10,17 +10,38 @@ import utils
 PATH_UCMERCED = "/home/enrib/progetto/dataset/DATASET/UCMerced_LandUse/Images"
 SEED = 42
 
-def evaluate_on_test_set(model, X_test, y_test_ohe, class_names, title_prefix="Test Set"):
-    """
-    Esegue l'inferenza sul test set e calcola le metriche
-    (Accuracy, Precision, Recall, F1) + Confusion Matrix, usando classification_report.
-    """
+print("Caricamento dataset UCMerced per la valutazione...")
+X, y = utils.load_dataset(PATH_UCMERCED)
+_, _, (X_test, y_test), class_names = utils.divide_and_encode_data(X, y)
+
+print(f"Test set caricato: {X_test.shape[0]} campioni.")
+
+# Trova tutti i modelli keras nella cartella Modelli_e_CF, escludendo il pre-addestramento su AID puro
+model_files = glob.glob("Progetto_Esame/Assignment_3/Modelli_e_CF/*.keras")
+models_to_evaluate = [f for f in model_files if "aid_pretrained" not in f]
+
+if not models_to_evaluate:
+    print("Nessun modello di fine-tuning o strategia 2 trovato nella cartella Modelli_e_CF (estensione .keras).")
+    exit(0)
+
+results = []
+
+for model_file in models_to_evaluate:
+    print(f"\n======================================")
+    print(f"Valutazione del modello: {model_file}")
+    print(f"======================================")
+    
+    # Carica modello
+    model = keras.models.load_model(model_file)
+    
+    # Valuta (questo salva già la confusion matrix)
+    title_prefix = model_file.replace(".keras", "")
     print(f"\n[{title_prefix}] Avvio inferenza sul Test Set...")
     
     # 1. Predizione
     y_pred_prob = model.predict(X_test)
     y_pred_idx  = np.argmax(y_pred_prob, axis=1)
-    y_true_idx  = np.argmax(y_test_ohe, axis=1)
+    y_true_idx  = np.argmax(y_test, axis=1)
     
     # 2. Estrazione metriche tramite classification_report (formato dict)
     report = classification_report(
@@ -76,47 +97,13 @@ def evaluate_on_test_set(model, X_test, y_test_ohe, class_names, title_prefix="T
     print(f"Matrice di confusione salvata in '{file_name}'")
     plt.close()
     
-    return {
+    metrics = {
+        "Modello": os.path.basename(model_file),
         "Accuracy": acc,
         "Precision": prec,
         "Recall": rec,
         "F1-Score": f1
     }
-
-print("Caricamento dataset UCMerced per la valutazione...")
-X, y = utils.load_dataset(PATH_UCMERCED)
-_, _, (X_test, y_test), class_names, _ = utils.prepare_ucmerced_data(X, y, seed=SEED)
-
-print(f"Test set caricato: {X_test.shape[0]} campioni.")
-
-# Trova tutti i modelli keras nella cartella Modelli_e_CF, escludendo il pre-addestramento su AID puro
-model_files = glob.glob("Progetto_Esame/Assignment_3/Modelli_e_CF/*.keras")
-models_to_evaluate = [f for f in model_files if "aid_pretrained" not in f]
-
-if not models_to_evaluate:
-    print("Nessun modello di fine-tuning o strategia 2 trovato nella cartella Modelli_e_CF (estensione .keras).")
-    exit(0)
-
-results = []
-
-for model_file in models_to_evaluate:
-    print(f"\n======================================")
-    print(f"Valutazione del modello: {model_file}")
-    print(f"======================================")
-    
-    # Carica modello
-    model = keras.models.load_model(model_file)
-    
-    # Valuta (questo salva già la confusion matrix)
-    metrics = evaluate_on_test_set(
-        model=model,
-        X_test=X_test,
-        y_test_ohe=y_test,
-        class_names=class_names,
-        title_prefix=model_file.replace(".keras", "")
-    )
-    
-    metrics["Modello"] = os.path.basename(model_file)
     results.append(metrics)
 
 # Formatta i risultati in un DataFrame Pandas

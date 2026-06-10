@@ -20,7 +20,7 @@ print("Caricamento dataset UCMerced...")
 X, y = utils.load_dataset(PATH)
 print(f"Caricate {len(X)} immagini. Shape: {X.shape}")
 
-(X_train, y_train), (X_val, y_val), (X_test, y_test), class_names, num_classes = utils.prepare_ucmerced_data(X, y, seed=SEED)
+(X_train, y_train), (X_val, y_val), (X_test, y_test), class_names = utils.divide_and_encode_data(X, y)
 
 print(f"Training set: {X_train.shape[0]} campioni")
 print(f"Validation set: {X_val.shape[0]} campioni")
@@ -30,7 +30,7 @@ print(f"Test set: {X_test.shape[0]} campioni")
 # 3. CREAZIONE MODELLO DA ZERO (STRATEGIA 2)
 # ─────────────────────────────────────────────
 print("\nCostruzione modello da zero (Strategia 2)...")
-model = utils.build_model(input_shape=X_train.shape[1:], num_classes=num_classes, name="Strategia2")
+model = utils.build_model(input_shape=X_train.shape[1:], num_classes=len(class_names), name="Strategia2")
 model.summary()
 
 # ─────────────────────────────────────────────

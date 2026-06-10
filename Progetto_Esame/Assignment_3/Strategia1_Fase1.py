@@ -21,21 +21,15 @@ PATH = "/home/enrib/progetto/dataset/DATASET/AID" # Manteniamo il path per WSL o
 # 2. CARICAMENTO DATASET
 # ─────────────────────────────────────────────
 print("Caricamento dataset AID (256×256)...")
-X, y = utils.load_dataset(PATH, target_size=AID_SIZE)
+X, y = utils.load_dataset(PATH)
 
 # Split 70/30 serve solo per il pre-training su AID
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, random_state=SEED, stratify=y, shuffle=True)
-
-ohe = OneHotEncoder(sparse_output=False)
-y_train = ohe.fit_transform(y_train.reshape(-1, 1))
-y_val   = ohe.transform(y_val.reshape(-1, 1))
-
-num_classes = y_train.shape[1]
+(X_train, y_train), (X_val, y_val), class_names = utils.divide_and_encode_data(X, y, only_val=True)
 
 # ─────────────────────────────────────────────
 # 3. CREAZIONE MODELLO
 # ─────────────────────────────────────────────
-model = utils.build_model(input_shape=X.shape[1:], num_classes=num_classes)
+model = utils.build_model(input_shape=X.shape[1:], num_classes=len(class_names))
 model.summary()
 
 # ─────────────────────────────────────────────
