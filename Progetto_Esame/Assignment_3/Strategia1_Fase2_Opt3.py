@@ -10,15 +10,13 @@ import utils
 BATCH_SIZE = 32
 EPOCHS     = 50
 LR         = 1e-5      # LR ridotto per il fine-tuning completo
-SEED       = 42
-UC_SIZE    = (256, 256)
 PATH = "/home/enrib/progetto/dataset/DATASET/UCMerced_LandUse/Images"
 
 # ─────────────────────────────────────────────
 # 2. CARICAMENTO E PREPARAZIONE DATI
 # ─────────────────────────────────────────────
-print("Caricamento dataset UCMerced (256×256)...")
-X, y = utils.load_dataset(PATH, target_size=UC_SIZE)
+
+X, y = utils.load_dataset(PATH)
 print(f"Caricate {len(X)} immagini. Shape: {X.shape}")
 
 (X_train, y_train), (X_val, y_val), (X_test, y_test), class_names = utils.divide_and_encode_data(X, y)

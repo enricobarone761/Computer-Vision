@@ -10,13 +10,12 @@ import utils
 BATCH_SIZE   = 32
 EPOCHS       = 100
 LR           = 1e-4
-SEED         = 42
 PATH = "/home/enrib/progetto/dataset/DATASET/UCMerced_LandUse/Images"
 
 # ─────────────────────────────────────────────
 # 2. CARICAMENTO E PREPARAZIONE DATI
 # ─────────────────────────────────────────────
-print("Caricamento dataset UCMerced...")
+
 X, y = utils.load_dataset(PATH)
 print(f"Caricate {len(X)} immagini. Shape: {X.shape}")
 
