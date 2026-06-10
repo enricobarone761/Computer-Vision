@@ -69,13 +69,13 @@ callbacks = [
         verbose=1),
 
     keras.callbacks.ModelCheckpoint(
-        filepath="Progetto_Esame/Assignment_3/Modelli_e_CF/finetuned_fase2.keras",
+        filepath="Progetto_Esame/Assignment_3/Modelli_e_CF/partial_finetuned_fase2.keras",
         monitor="val_loss", 
         save_best_only=True, 
         verbose=1),
 
     keras.callbacks.TensorBoard(
-        log_dir="Progetto_Esame/Assignment_3/logs/strategia1_fase2", 
+        log_dir="Progetto_Esame/Assignment_3/logs/strategia1_fase2_b", 
         histogram_freq=0),
 ]
 
