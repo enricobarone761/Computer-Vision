@@ -39,7 +39,7 @@ for i, layer in enumerate(pretrained_model.layers):
     else:
         layer.trainable = True
 
-print(TODO)
+#print(TODO)
 
 # rimpiazzo la testa per adattarlo al nuovo dataset
 x = pretrained_model.layers[-2].output #TODO da spiegare
@@ -57,14 +57,14 @@ model.compile(
 callbacks = [
     keras.callbacks.EarlyStopping(
         monitor="val_loss", 
-        patience=10,
+        patience=5,
         restore_best_weights=True, 
         verbose=1),
 
     keras.callbacks.ReduceLROnPlateau(
         monitor="val_loss", 
         factor=0.5, 
-        patience=5,
+        patience=3,
         min_lr=1e-7, 
         verbose=1),
 

@@ -3,7 +3,7 @@ import CNN_e_Utility as utils
 
 BATCH_SIZE   = 32
 EPOCHS       = 100
-LR           = 1e-4
+LR           = 1e-3
 PATH = "/home/enrib/progetto/dataset/DATASET/UCMerced_LandUse/Images"
 
 X, y = utils.load_dataset(PATH)
@@ -14,7 +14,7 @@ print(f"Training set: {X_train.shape[0]} campioni")
 print(f"Validation set: {X_val.shape[0]} campioni")
 print(f"Test set: {X_test.shape[0]} campioni")
 
-model = utils.build_model(input_shape=X_train.shape[1:], num_classes=len(class_names), name="Strategia2")
+model = utils.build_model(input_shape=X_train.shape[1:], num_classes=len(class_names))
 model.summary()
 
 model.compile(
@@ -26,7 +26,7 @@ model.compile(
 callbacks = [
     keras.callbacks.EarlyStopping(
         monitor="val_loss", 
-        patience=10,
+        patience=7,
         restore_best_weights=True, 
         verbose=1),
 
@@ -45,7 +45,8 @@ callbacks = [
 
     keras.callbacks.TensorBoard(
         log_dir="Progetto_Esame/Assignment_3/logs/strategia2", 
-        histogram_freq=0),
+        histogram_freq=0
+        )
 ]
 
 history = model.fit(

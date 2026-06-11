@@ -2,7 +2,7 @@ import keras
 import CNN_e_Utility as utils
 
 BATCH_SIZE   = 32
-EPOCHS       = 100
+EPOCHS       = 150
 LR           = 1e-3
 PATH = "/home/enrib/progetto/dataset/DATASET/AID" # path per wsl
 
@@ -24,7 +24,7 @@ model.compile(
 callbacks = [
     keras.callbacks.EarlyStopping(
         monitor="val_loss",
-        patience=10,
+        patience=7,
         restore_best_weights=True,
         verbose=1
     ),
@@ -42,8 +42,7 @@ callbacks = [
         verbose=1
     ),
     keras.callbacks.TensorBoard(
-        log_dir="Progetto_Esame/Assignment_3/logs/strategia1_fase1",
-        histogram_freq=0,
+        log_dir="Progetto_Esame/Assignment_3/logs/strategia1_fase1"
     )
 ]
 
