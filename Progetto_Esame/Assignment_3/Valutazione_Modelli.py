@@ -34,6 +34,23 @@ for name, path in models.items():
     # svuoto la memoria dal modello non più necessario per il ciclo
     del model
 
+    #qui salvo l'immagine con accanto il grafico a barre con le top 5 predette    
+    for i, im in enumerate(X_test[:10]):
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+        probs= y_pred_prob[i] 
+        top5 = np.argsort(y_pred_prob[i])[-5:]
+
+        ax1.imshow(im); ax1.axis('off')
+        ax1.set_title(f'Immagine\n Pred: {class_names[top5[-1]]} ({probs[top5[-1]]:.2f})\n True: {class_names[y_true[i]]}')
+
+        ax2.barh(class_names[top5], probs[top5])
+        ax2.set(xlabel='Probabilità', title='Analisi Statistica del Classificatore (Top 5)')
+
+        fig.tight_layout()
+        fig.savefig(f"Progetto_Esame/Assignment_3/Modelli_e_CF/Predictions/predizioni_{name}_{i}.png", dpi=300, bbox_inches='tight')
+        plt.close()
+
+
     report = classification_report(y_true, y_pred, output_dict=True)
     acc  = report["accuracy"]
     prec = report["macro avg"]["precision"]

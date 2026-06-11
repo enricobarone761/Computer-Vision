@@ -17,32 +17,32 @@ print(f"Test set: {X_test.shape[0]} campioni")
 
 pretrained_model = keras.models.load_model("Progetto_Esame/Assignment_3/Modelli_e_CF/preaddestrato_aid.keras")
 
-#TODO da aggiustare
-# OPZIONE 2: Congelare solo una parte della rete (i primi 3 stage),
-# lasciando addestrabili gli ultimi layer convoluzionali (Stage 4) e il MLP finale.
-# Per scegliere i layer in modo preciso, cerchiamo il primo layer Conv2D 
-# che utilizza 512 filtri (che identifica l'inizio dello Stage 4).
-# Siccome usiamo blocchi "pre-activation", il blocco inizia effettivamente 
-# con i layer di BatchNormalization e Activation che lo precedono.
+# OPZIONE 2: Fine-tuning parziale.
+# congeliamo i primi 3 stage della rete per preservare i pesi delle feature di basso/medio livello.
+# lasciamo invece addestrabili l'ultimo blocco convoluzionale (Stage 4) e il MLP finale.
+#
+# per trovare l'inizio dello Stage 4, cerchiamo il primo layer Conv2D con 512 filtri.
+# poiché l'architettura adotta la struttura "pre-activation" (dove BN e Activation precedono la conv),
+# indietreggiamo di 2 posizioni rispetto al layer Conv2D per includere anche questi due layer pre-convoluzione.
 
 start_stage4_idx = None
 for i, layer in enumerate(pretrained_model.layers):
     if isinstance(layer, keras.layers.Conv2D) and layer.filters == 512:
-        # Trovato il primo Conv2D dello Stage 4. 
-        # Indietreggiamo di 2 posizioni per includere la BN e l'Activation pre-convoluzione.
+        # Trovato il primo Conv2D dello Stage 4.
+        # Sottraiamo 2 all'indice per includere Batch Normalization e Activation pre-convoluzione.
         start_stage4_idx = i - 2
         break
 
+# Iteriamo su tutti i layer per impostare la loro addestrabilità (trainable)
 for i, layer in enumerate(pretrained_model.layers):
     if i < start_stage4_idx:
-        layer.trainable = False
+        layer.trainable = False  # congeliamo i layer dei primi 3 stage (pesi non aggiornabili)
     else:
-        layer.trainable = True
+        layer.trainable = True   # sblocca lo Stage 4 (i pesi verranno aggiornati nel training)
 
-#print(TODO)
 
 # rimpiazzo la testa per adattarlo al nuovo dataset
-x = pretrained_model.layers[-2].output #TODO da spiegare
+x = pretrained_model.layers[-2].output 
 outputs = keras.layers.Dense(len(class_names), activation="softmax", name="ucmerced_classifier")(x)
 
 model = keras.Model(inputs=pretrained_model.input, outputs=outputs, name="Finetune_Opt2")
@@ -57,7 +57,7 @@ model.compile(
 callbacks = [
     keras.callbacks.EarlyStopping(
         monitor="val_loss", 
-        patience=5,
+        patience=7,
         restore_best_weights=True, 
         verbose=1),
 

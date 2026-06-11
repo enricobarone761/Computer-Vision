@@ -3,13 +3,12 @@ import numpy as np
 import cv2 as cv
 from keras import layers, Model, Sequential, Input
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
 
-# iperparametri globali dell'architettura
-# funzione di attivazione (modificabile: 'relu', 'gelu', 'swish')
+
 ACTIVATION_FUNC = 'gelu'
 
-# carica le immagini da una cartella e le ridimensiona a 256x256
+# carichiamo le immagini dalla cartella e le ridimensioniamo a 256x256 per uniformarle
 def load_dataset(cartella):
     X, y = [], []
     for f in Path(cartella).rglob("*"):
@@ -27,6 +26,7 @@ def load_dataset(cartella):
 # divide i dati tra train, validation ed eventuale test, applicando l'one-hot encoding
 def divide_and_encode_data(X, y, only_val:bool = False):
 
+    
     encoder = OneHotEncoder(sparse_output=False)
     
     # uso stratify nello split per mantenere le proporzioni delle classi e non sbilanciare l'addestramento
@@ -52,6 +52,7 @@ def divide_and_encode_data(X, y, only_val:bool = False):
         return (X_train, y_train), (X_val, y_val), (X_test, y_test), class_names
 
 
+# data augmentation per combattere un po' l'overfitting
 def get_data_augmentation():
     return Sequential([
         layers.RandomFlip("horizontal_and_vertical"),
@@ -65,24 +66,19 @@ def get_data_augmentation():
 
 def residual_block(x, filters, stride=1):
     """
-    Pre-activation residual block (He et al., 2016 — ResNet v2).
+    Blocco residuo di tipo Pre-Activation.
+    
+    Flusso dei dati:
+      Input -> BN -> Attivazione -> Conv 3x3 -> BN -> Attivazione -> Conv 3x3 -> Somma con Shortcut
 
-    Ordine: BN → Act → Conv(3×3) → BN → Act → Conv(3×3) → Add(shortcut)
-
-    Rispetto al blocco post-activation (ResNet v1):
-    - Lo shortcut è un'identità pura: i gradienti fluiscono inalterati.
-    - La proiezione shortcut usa solo Conv 1×1 senza BN (la BN è già
-      applicata sul ramo principale prima della prima conv).
-    - Non c'è attivazione dopo l'Add: il prossimo blocco inizia con BN→Act.
-    - Nota: l'ultimo blocco della backbone richiede una BN→Act esplicita
-      (applicata in build_model prima del MaxPool finale).
-
-    use_bias=False su tutte le Conv seguite da BN (il bias è ridondante
-    perché la BN ha il proprio parametro β che svolge la stessa funzione).
+    DOpo alcune ricerche ho deciso di implementare la pre-activation come sulla ResNet V2.
+    Usare BN e Act prima di ogni convoluzione permette al gradiente di propagarsi più facilmente durante 
+    l'addestramento, evitando che i gradienti si appiattiscano all'aumentare dei layer. 
+    Inoltre, questo tipo di architettura ha dimostrato di convergere più rapidamente.
     """
     shortcut = x
 
-    # ── Branch principale ─────────────────────────────────────────────────
+    # ramo principale
     x = layers.BatchNormalization()(x)
     x = layers.Activation(ACTIVATION_FUNC)(x)
     x = layers.Conv2D(filters, 3, strides=stride, padding="same",use_bias=False)(x)
@@ -92,59 +88,50 @@ def residual_block(x, filters, stride=1):
     x = layers.Conv2D(filters, 3, strides=1, padding="same",use_bias=False)(x)
 
     # ── Proiezione shortcut ───────────────────────────────────────────────
-    # Solo se il numero di filtri o la stride cambia.
-    # In pre-activation non si aggiunge BN sul percorso shortcut.
-    #TODO spiegare e capire bene queste due righe
+    # In un blocco residuo, l'output del "branch principale" viene sommato
+    # all'input originale ("shortcut"). Per farlo, devono avere la stessa forma.
+    # 
+    # Se il branch principale ha modificato le dimensioni (es. rimpicciolendo 
+    # l'immagine con stride=2 o aumentando i canali 'filters'), non possiamo 
+    # sommarli direttamente. In tal caso applichiamo una Conv2D 1x1 alla shortcut 
+    # per forzarla (proiezione) alle nuove dimensioni in modo computazionalmente leggero.
     if shortcut.shape[-1] != filters or stride != 1:
         shortcut = layers.Conv2D(filters, 1, strides=stride, padding="same", use_bias=False)(shortcut)
 
     return layers.Add()([x, shortcut])
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# COSTRUZIONE MODELLO
-# ─────────────────────────────────────────────────────────────────────────────
-
 def build_model(input_shape, num_classes):
     """
-    Costruisce la rete residuale custom.
-
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │  Architettura                                                        │
-    │                                                                      │
-    │  Multi-scale Stem (ResNet-C):                                        │
-    │    Conv 3×3 s=2 → BN → Act   (÷2)                                   │
-    │    Conv 3×3 s=1 → BN → Act   (elabora a metà risoluzione!)          │
-    │    Conv 3×3 s=2 → BN → Act   (÷2)                                   │
-    │    MaxPool 3×3 s=2            (÷2)  →  ÷8 totale                    │
-    │                                                                      │
-    │  Backbone [3, 4, 12, 6] (pre-activation):                           │
-    │    Stage 1: 3 × ResBlock(64,  stride=1)                             │
-    │    Stage 2: 4 × ResBlock(128, stride=2 nel primo)                   │
-    │    Stage 3: 12 × ResBlock(256, stride=2 nel primo)                  │
-    │    Stage 4: 6 × ResBlock(512, stride=2 nel primo)                   │
-    │    BN finale → Act finale  (necessari dopo ultimo blocco pre-act)   │
-    │                                                                      │
-    │  Riduzione finale:                                                   │
-    │    MaxPooling2D(2, s=2)  →  ÷2 aggiuntivo                          │
-    │                                                                      │
-    │  Classifier (MLP):                                                   │
-    │    Flatten → Dense(1024) → BN → Act → Dropout(0.5)                 │
-    │           → Dense(512)  → BN → Act → Dropout(0.5)                  │
-    │           → Dense(num_classes, softmax)                             │
-    └─────────────────────────────────────────────────────────────────────┘
+    Architettura                                                        
+                                                                        
+    Stage 0:                                        
+    Conv 3x3 s=2 → BN → Act   (÷2)                                   
+    Conv 3x3 s=1 → BN → Act            
+    Conv 3x3 s=2 → BN → Act   (÷2)                                   
+    MaxPool 3x3 s=2            (÷2)  →  ÷8 totale                    
+                                                                        
+    Backbone [3, 4, 8, 4] (pre-activation):                           
+    Stage 1: 3 x ResBlock(64,  stride=1)                             
+    Stage 2: 4 x ResBlock(128, stride=2 nel primo)                   
+    Stage 3: 8 x ResBlock(256, stride=2 nel primo)                  
+    Stage 4: 4 x ResBlock(512, stride=2 nel primo)                   
+    BN finale → Activa finale 
+                                                                        
+    Riduzione finale:                                                   
+    MaxPooling2D(2, s=2)  →  ÷2                           
+                                                                        
+    Classifier (MLP):                                                   
+    Flatten → Dense(1024) → BN → Act → Dropout(0.3)                 
+            → Dense(512)  → BN → Act → Dropout(0.3)                  
+            → Dense(num_classes, softmax)                             
 
     Dimensioni spaziali:
 
-      Input      After Stem   S2    S3    S4   After Pool  Flatten
-      256×256    32×32        16×16  8×8  4×4  2×2         2 048
+    Input      S0       S1     S2     S3     S4    MaxPool    Flatten
+    256x256    32x32   32x32  16x16   8x8    4x4      2x2         2048
 
-    Parametri stimati (~40M con input 256×256).
-
-    Note sul fine-tuning:
-      L'input size a 256x256 è usato sia in pre-training che in fine-tuning, 
-      permettendo lo slicing diretto del modello senza necessità di reinizializzare 
-      i layer Dense.
+    Parametri totali: 38.834.824 TODO
     """
     inputs = Input(shape=input_shape, name="input")
 
@@ -152,65 +139,64 @@ def build_model(input_shape, num_classes):
     #automaticamente keras disabilita questi layer in fase di inferenza rendendo l'input uguale all'output
     x = get_data_augmentation()(inputs)
 
-    # ── Multi-scale Stem (ResNet-C style) ─────────────────────────────────────
-    # Tre Conv 3×3 invece della singola Conv 7×7 originale.
+    # ── Multi-scale Stem ─────────────────────────────────────
+    # Tre Conv 3x3 
     # La seconda conv a stride=1 processa la feature map a metà risoluzione,
     # estraendo feature prima di scalare ulteriormente.
-    # Questo è il principale vantaggio per immagini ad alta risoluzione.
     #
-    # 256×256 → 128×128 → 128×128 →  64×64  → 32×32  (÷8 totale)
+    # 256×256 → 128×128
     x = layers.Conv2D(32, 3, strides=2, padding="same",use_bias=False)(x)
     x = layers.BatchNormalization()(x)
     x = layers.Activation(ACTIVATION_FUNC)(x)
 
+    # 128×128 → 64×64
     x = layers.Conv2D(32, 3, strides=1, padding="same",use_bias=False)(x)
     x = layers.BatchNormalization()(x)
     x = layers.Activation(ACTIVATION_FUNC)(x)
 
+    # 64×64 → 32×32
     x = layers.Conv2D(64, 3, strides=2, padding="same",use_bias=False)(x)
     x = layers.BatchNormalization()(x)
     x = layers.Activation(ACTIVATION_FUNC)(x)
 
     x = layers.MaxPooling2D(pool_size=3, strides=2, padding="same")(x)
 
-    # ── Backbone Residuale ────────────────────────────────────────────────────
+    # ── Backbone Residuale ─────────────────────────────────
 
-    # Stage 1 — 3 blocchi @ 64 filtri, nessun downsampling
-    # 256: 32×32
+    # Stage 1 — 3 blocchi @ 64 filtri
+    # 32×32
     for i in range(3):
         x = residual_block(x, 64, stride=1)
 
     # Stage 2 — 4 blocchi @ 128 filtri, stride=2 nel primo
-    # 256: 32→16
+    # 32x32 → 16x16
     x = residual_block(x, 128, stride=2)
     for i in range(3):
         x = residual_block(x, 128, stride=1)
 
     # Stage 3 — 8 blocchi @ 256 filtri, stride=2 nel primo
-    # 256: 16→8
+    # 16x16 → 8x8
     x = residual_block(x, 256, stride=2)
     for i in range(7):
         x = residual_block(x, 256, stride=1)
 
     # Stage 4 — 4 blocchi @ 512 filtri, stride=2 nel primo
-    # 256: 8→4
+    # 8x8 → 4x4
     x = residual_block(x, 512, stride=2)
     for i in range(3):
         x = residual_block(x, 512, stride=1)
 
-    # Attivazione finale esplicita — necessaria dopo l'ultimo blocco
-    # pre-activation (che termina con Add senza Act successiva).
     x = layers.BatchNormalization()(x)
     x = layers.Activation(ACTIVATION_FUNC)(x)
 
     # MaxPool finale — riduce la dimensione spaziale di un ulteriore ÷2.
-    # NON è GlobalAveragePooling (vietato dall'assignment): è un MaxPool
-    # con kernel 2×2 che seleziona l'attivazione massima in ogni cella 2×2.
-    # 256: 4×4 → 2×2
+    # non potendso utiilizzare average pool utilizzo maxpool che
+    # con un kernel 2×2 seleziona l'attivazione massima in ogni cella 2×2.
+    # 4x4 → 2x2
     x = layers.MaxPooling2D(pool_size=2, strides=2, padding="same")(x)
 
     # ── Classifier (MLP) ──────────────────────────────────────────────────────
-    # Flatten: 256→2×2×512=2048
+    # Flatten: 2x2x512=2048
     x = layers.Flatten()(x)
 
     x = layers.Dense(1024, name="mlp_dense1")(x)
