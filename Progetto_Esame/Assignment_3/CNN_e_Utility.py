@@ -57,25 +57,24 @@ def get_data_augmentation():
     return Sequential([
         layers.RandomFlip("horizontal_and_vertical"),
         layers.RandomRotation(0.25),         # rotazioni fino a ±90°, hanno senso per foto aeree o satellitari
-        layers.RandomZoom(0.15),
-        #layers.RandomTranslation(0.1, 0.1),  # piccoli spostamenti spaziali fino al 10%
-        layers.RandomContrast(0.2),
-        layers.RandomBrightness(0.2),       
+        layers.RandomZoom(0.15),             # zoom del 15%
+        #layers.RandomTranslation(0.1, 0.1),  
+        layers.RandomContrast(0.2),            # modifica del contrasto del 20%
+        layers.RandomBrightness(0.2),          # modifica della luminosità del 20%    
     ], name="data_augmentation")
 
 
 def residual_block(x, filters, stride=1):
-    """
-    Blocco residuo di tipo Pre-Activation.
+    # Blocco residuo di tipo Pre-Activation.
     
-    Flusso dei dati:
-      Input -> BN -> Attivazione -> Conv 3x3 -> BN -> Attivazione -> Conv 3x3 -> Somma con Shortcut
+    # Flusso dei dati:
+    #   Input -> BN -> Attivazione -> Conv 3x3 -> BN -> Attivazione -> Conv 3x3 -> Somma con Shortcut
 
-    DOpo alcune ricerche ho deciso di implementare la pre-activation come sulla ResNet V2.
-    Usare BN e Act prima di ogni convoluzione permette al gradiente di propagarsi più facilmente durante 
-    l'addestramento, evitando che i gradienti si appiattiscano all'aumentare dei layer. 
-    Inoltre, questo tipo di architettura ha dimostrato di convergere più rapidamente.
-    """
+    # DOpo alcune ricerche ho deciso di implementare la pre-activation come sulla ResNet V2.
+    # Usare BN e Act prima di ogni convoluzione permette al gradiente di propagarsi più facilmente durante 
+    # l'addestramento, evitando che i gradienti si appiattiscano all'aumentare dei layer. 
+    # Inoltre, questo tipo di architettura ha dimostrato di convergere più rapidamente.
+
     shortcut = x
 
     # ramo principale
@@ -139,7 +138,7 @@ def build_model(input_shape, num_classes):
     #automaticamente keras disabilita questi layer in fase di inferenza rendendo l'input uguale all'output
     x = get_data_augmentation()(inputs)
 
-    # ── Multi-scale Stem ─────────────────────────────────────
+    # ── Stage 0 ─────────────────────────────────────
     # Tre Conv 3x3 
     # La seconda conv a stride=1 processa la feature map a metà risoluzione,
     # estraendo feature prima di scalare ulteriormente.
