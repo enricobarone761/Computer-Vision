@@ -17,6 +17,7 @@ def load_dataset(cartella):
             im = cv.imread(str(f))
             if im is not None:
                 im = cv.resize(im, (256,256))
+                #TODO spiegare bene perchè ridimensiono fisso a 256x256:
                 X.append(im)
                 y.append(classe)
                 print(f"Caricata immagine {f} con classe {classe}")
@@ -130,7 +131,8 @@ def build_model(input_shape, num_classes):
     Input      S0       S1     S2     S3     S4    MaxPool    Flatten
     256x256    32x32   32x32  16x16   8x8    4x4      2x2         2048
 
-    Parametri totali: 38.834.824 TODO
+    Parametri totali: 31,043,701 (con 21 classi finali)
+    
     """
     inputs = Input(shape=input_shape, name="input")
 

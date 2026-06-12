@@ -35,7 +35,7 @@ for name, path in models.items():
     del model
 
     #qui salvo l'immagine con accanto il grafico a barre con le top 5 predette    
-    for i, im in enumerate(X_test[:10]):
+    for i, im in enumerate(X_test[:15]): #salvo solo le prime 15 del test set
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
         probs= y_pred_prob[i] 
         top5 = np.argsort(y_pred_prob[i])[-5:]

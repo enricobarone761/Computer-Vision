@@ -2,7 +2,7 @@ import keras
 import CNN_e_Utility as utils
 
 BATCH_SIZE   = 32
-EPOCHS       = 100
+EPOCHS       = 150
 LR           = 1e-3
 PATH = "/home/enrib/progetto/dataset/DATASET/UCMerced_LandUse/Images"
 
@@ -44,9 +44,7 @@ callbacks = [
         verbose=1),
 
     keras.callbacks.TensorBoard(
-        log_dir="Progetto_Esame/Assignment_3/logs/strategia2", 
-        histogram_freq=0
-        )
+        log_dir="Progetto_Esame/Assignment_3/logs/strategia2")
 ]
 
 history = model.fit(

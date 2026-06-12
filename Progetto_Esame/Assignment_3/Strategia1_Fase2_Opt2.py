@@ -75,8 +75,7 @@ callbacks = [
         verbose=1),
 
     keras.callbacks.TensorBoard(
-        log_dir="Progetto_Esame/Assignment_3/logs/strategia1_fase2_b", 
-        histogram_freq=0),
+        log_dir="Progetto_Esame/Assignment_3/logs/strategia1_fase2_b")
 ]
 
 history = model.fit(
