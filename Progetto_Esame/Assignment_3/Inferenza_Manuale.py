@@ -24,7 +24,8 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 top5 = np.argsort(y_pred_probs)[-5:] #arg restituisce gli indici degli elementi ordinati in ordine crescente
 class_names = np.array(class_names)
 
-ax1.imshow(img_resized); ax1.axis('off')
+ax1.imshow(cv.cvtColor(img_resized, cv.COLOR_BGR2RGB)) #matplot si aspetta immagini rgb, io le ho salvate in bgr
+ax1.axis('off')
 ax1.set_title(f'Immagine\n Pred: {class_names[y_pred_class]} ({y_pred_probs[y_pred_class]:.2f})')
 
 ax2.barh(class_names[top5], y_pred_probs[top5])

@@ -1,4 +1,5 @@
 import numpy as np
+import cv2 as cv
 import pandas as pd
 import matplotlib.pyplot as plt
 import keras
@@ -40,7 +41,8 @@ for name, path in models.items():
         probs= y_pred_prob[i] 
         top5 = np.argsort(y_pred_prob[i])[-5:]
 
-        ax1.imshow(im); ax1.axis('off')
+        ax1.imshow(cv.cvtColor(im, cv.COLOR_BGR2RGB)) #matplot si aspetta immagini rgb, io le ho salvate in bgr
+        ax1.axis('off')
         ax1.set_title(f'Immagine\n Pred: {class_names[top5[-1]]} ({probs[top5[-1]]:.2f})\n True: {class_names[y_true[i]]}')
 
         ax2.barh(class_names[top5], probs[top5])
