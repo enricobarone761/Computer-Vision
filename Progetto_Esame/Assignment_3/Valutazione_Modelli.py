@@ -45,7 +45,8 @@ for name, path in models.items():
         ax1.axis('off')
         ax1.set_title(f'Immagine\n Pred: {class_names[top5[-1]]} ({probs[top5[-1]]:.2f})\n True: {class_names[y_true[i]]}')
 
-        ax2.barh(class_names[top5], probs[top5])
+        bars = ax2.barh(class_names[top5], probs[top5])
+        ax2.bar_label(bars, fmt='%.2f', label_type='center', padding=10)
         ax2.set(xlabel='Probabilità', title='Analisi Statistica del Classificatore (Top 5)')
 
         fig.tight_layout()

@@ -9,16 +9,14 @@ model = keras.models.load_model("Progetto_Esame/Assignment_3/Modelli_e_CF/partia
 IMAGE_PATH = r'Progetto_Esame/Assignment_3/test_image.png'
 
 img = cv.imread(IMAGE_PATH)
-img_resized = cv.resize(img, (256, 256), interpolation=cv.INTER_CUBIC)
+img_resized = cv.resize(img, (256, 256))
 img_reshaped = img_resized.reshape(1, 256, 256, 3)  # Aggiunge la dimensione del batch (1, 256, 256, 3)
-cv.imwrite("Progetto_Esame/Assignment_3/image_resized.png", img_resized)
 
 y_pred_probs = model.predict(img_reshaped)[0]  # Ottiene le probabilità predette per la prima (e unica) immagine
 y_pred_class = np.argmax(y_pred_probs)
 
-#recupero i nomi delle classi direttamente dalle cartelle del dataset senza doverlo ricaricare tutto in memoria
-#l'ordinamento è necessario in quanto il OneHotEncoding usato durante l'addestramento restituisce i nomi delle classi in ordine alfabetico
-class_names = sorted([f.name for f in Path("Progetto_Esame/Assignment_3/DATASET/UCMerced_LandUse/Images").glob('*') if f.is_dir()])
+class_names = ['agricultural', 'airplane', 'baseballdiamond', 'beach', 'buildings', 'chaparral', 'denseresidential', 'forest', 'freeway', 'golfcourse', 'harbor', 'intersection', 'mediumresidential', 'mobilehomepark', 'overpass', 'parkinglot', 'river', 'runway', 'sparseresidential', 'storagetanks', 'tenniscourt']
+
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 top5 = np.argsort(y_pred_probs)[-5:] #arg restituisce gli indici degli elementi ordinati in ordine crescente
