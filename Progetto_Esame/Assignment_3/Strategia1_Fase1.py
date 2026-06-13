@@ -1,5 +1,5 @@
 import keras
-import CNN_e_Utility as utils
+import Rete_e_Utility as utils
 
 BATCH_SIZE   = 32
 EPOCHS       = 150
@@ -10,6 +10,9 @@ X, y = utils.load_dataset(PATH)
 
 # split 70/30 solo per il pre-training su AID
 (X_train, y_train), (X_val, y_val), class_names = utils.divide_and_encode_data(X, y, only_val=True)
+
+print(f"Training set: {X_train.shape[0]} campioni")
+print(f"Validation set: {X_val.shape[0]} campioni")
 
 model = utils.build_model(input_shape=X.shape[1:], num_classes=len(class_names))
 model.summary()

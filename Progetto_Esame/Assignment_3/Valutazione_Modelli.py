@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import keras
 from sklearn.metrics import classification_report, ConfusionMatrixDisplay
-import CNN_e_Utility as utils
+import Rete_e_Utility as utils
 
 PATH_UCMERCED = "/home/enrib/progetto/dataset/DATASET/UCMerced_LandUse/Images"
 

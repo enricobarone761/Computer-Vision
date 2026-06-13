@@ -1,8 +1,8 @@
 import keras
-import CNN_e_Utility as utils
+import Rete_e_Utility as utils
 
 BATCH_SIZE = 32
-EPOCHS     = 100
+EPOCHS     = 150
 LR         = 1e-4     # lr iniziale intermedio per il fine-tuning parziale
 PATH = "/home/enrib/progetto/dataset/DATASET/UCMerced_LandUse/Images"
 
@@ -57,7 +57,7 @@ model.compile(
 callbacks = [
     keras.callbacks.EarlyStopping(
         monitor="val_loss", 
-        patience=7,
+        patience=5,
         restore_best_weights=True, 
         verbose=1),
 
@@ -69,13 +69,13 @@ callbacks = [
         verbose=1),
 
     keras.callbacks.ModelCheckpoint(
-        filepath="Progetto_Esame/Assignment_3/Modelli_e_CF/partial_finetuned_fase2.keras",
+        filepath="Progetto_Esame/Assignment_3/Modelli_e_CF/partial_finetuned_fase22.keras",
         monitor="val_loss", 
         save_best_only=True, 
         verbose=1),
 
     keras.callbacks.TensorBoard(
-        log_dir="Progetto_Esame/Assignment_3/logs/strategia1_fase2_b")
+        log_dir="Progetto_Esame/Assignment_3/logs/strategia1_fase22_b")
 ]
 
 history = model.fit(
