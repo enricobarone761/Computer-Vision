@@ -26,7 +26,8 @@ ax1.imshow(cv.cvtColor(img_resized, cv.COLOR_BGR2RGB)) #matplot si aspetta immag
 ax1.axis('off')
 ax1.set_title(f'Immagine\n Pred: {class_names[y_pred_class]} ({y_pred_probs[y_pred_class]:.2f})')
 
-ax2.barh(class_names[top5], y_pred_probs[top5])
+bars = ax2.barh(class_names[top5], y_pred_probs[top5])
+ax2.bar_label(bars, fmt='%.2f', label_type='center', padding=10)
 ax2.set(xlabel='Probabilità', title='Analisi Statistica del Classificatore (Top 5)')
 
 fig.tight_layout()
