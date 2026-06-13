@@ -16,3 +16,4 @@ pippo.py
 *.keras
 avvia_addestramenti.py
 Predictions
+__pycache__

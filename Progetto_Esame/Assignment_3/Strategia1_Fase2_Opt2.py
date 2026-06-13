@@ -42,8 +42,8 @@ for i, layer in enumerate(pretrained_model.layers):
 
 
 # rimpiazzo la testa per adattarlo al nuovo dataset
-x = pretrained_model.layers[-2].output 
-outputs = keras.layers.Dense(len(class_names), activation="softmax", name="ucmerced_classifier")(x)
+x = pretrained_model.layers[-2].output # prendiamo l'output dell'ultimo layer prima dell'output
+outputs = keras.layers.Dense(len(class_names), activation="softmax", name="ucmerced_classifier")(x) # aggiungiamo un nuovo layer adatto alle classi del nuovo dataset
 
 model = keras.Model(inputs=pretrained_model.input, outputs=outputs, name="Finetune_Opt2")
 model.summary()
