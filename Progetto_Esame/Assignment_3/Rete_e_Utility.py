@@ -8,7 +8,6 @@ from sklearn.preprocessing import OneHotEncoder
 
 ACTIVATION_FUNC = 'gelu'
 
-# carichiamo le immagini dalla cartella e le ridimensioniamo a 256x256 per uniformarle
 def load_dataset(cartella):
     X, y = [], []
     for f in Path(cartella).rglob("*"):
@@ -16,8 +15,11 @@ def load_dataset(cartella):
             classe = f.parent.name
             im = cv.imread(str(f))
             if im is not None:
+                # ridimensioniamo a 256x256 sia per uniformare i due dataset (UCMerced è 256x256, mentre AID è 600x600)
+                # sia per evitare di saturare la memoria della GPU durante il training. Inoltre, lo strato di Flatten
+                # prima dei Dense layer impone che gli input abbiano dimensioni fisse, altrimenti si avrebbero errori
+                # di mismatch dimensionale sui pesi della rete.
                 im = cv.resize(im, (256,256))
-                #TODO spiegare bene perchè ridimensiono fisso a 256x256:
                 X.append(im)
                 y.append(classe)
                 print(f"Caricata immagine {f} con classe {classe}")
@@ -27,7 +29,6 @@ def load_dataset(cartella):
 # divide i dati tra train, validation ed eventuale test, applicando l'one-hot encoding
 def divide_and_encode_data(X, y, only_val:bool = False):
 
-    
     encoder = OneHotEncoder(sparse_output=False)
     
     # uso stratify nello split per mantenere le proporzioni delle classi e non sbilanciare l'addestramento
@@ -53,8 +54,8 @@ def divide_and_encode_data(X, y, only_val:bool = False):
         return (X_train, y_train), (X_val, y_val), (X_test, y_test), class_names
 
 
-# data augmentation per combattere un po' l'overfitting
-def get_data_augmentation():
+
+def data_augmentation():
     return Sequential([
         layers.RandomFlip("horizontal_and_vertical"),
         layers.RandomRotation(0.25),         # rotazioni fino a ±90°, hanno senso per foto aeree o satellitari
@@ -138,7 +139,7 @@ def build_model(input_shape, num_classes):
 
     #Data augmentation (applicata solo al training set)
     #automaticamente keras disabilita questi layer in fase di inferenza rendendo l'input uguale all'output
-    x = get_data_augmentation()(inputs)
+    x = data_augmentation()(inputs)
 
     # ── Stage 0 ─────────────────────────────────────
     # Tre Conv 3x3 
